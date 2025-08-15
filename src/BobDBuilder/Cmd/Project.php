@@ -9,6 +9,9 @@ use BrickLayer\Lay\Core\LayConfig;
 use BrickLayer\Lay\Libs\Dir\LayDir;
 
 
+/**
+ * Every command registered in this class is considered internal
+ */
 final class Project implements CmdLayout
 {
     private EnginePlug $plug;
@@ -69,6 +72,7 @@ final class Project implements CmdLayout
             LayConfig::generate_project_identity(true);
 
             new BobExec("make:domain Default '*' --silent --force");
+            new BobExec("make:domain Api '*' --silent --force");
             return;
         }
 

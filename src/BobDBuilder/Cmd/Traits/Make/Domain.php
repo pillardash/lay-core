@@ -21,10 +21,10 @@ trait Domain
 
         $pattern ??= strtolower($domain);
 
-        if (!$this->plug->is_internal && trim($pattern) == "*") {
+        if (!$this->plug->is_internal && (trim($pattern) == "*" || trim($pattern) == "api")) {
             $this->plug->failed();
             $this->plug->write_warn(
-                "Pattern cannot be an empty quote or '*'\n"
+                "Pattern cannot be an empty quote or '*' or 'api'\n"
                 . "\n"
                 . "See pattern examples below:\n"
                 . "Example: 'blog-posts,blog'\n"
@@ -39,11 +39,12 @@ trait Domain
         $domain_dir = $this->plug->server->domains . $domain;
         $exists = is_dir($domain_dir);
 
-        if($domain == "Default" && !$this->plug->is_internal) {
+        if(!$this->plug->is_internal && in_array($domain, ["Default", "Api"] )) {
             $this->plug->failed();
             $this->plug->write_warn(
-                "Unfortunately you cannot create a *Default* domain automatically\n"
-                . "If for whatever reasons you need to do that, navigate to the Lay Repository and copy it from there\n"
+                "Unfortunately you cannot create a this domain like this!\n"
+                . "To reset your *Default* and *Api* domains, you can run the command *php bob project:create --force-refresh*\n"
+                . "If you need to reset one of them, you can navigate to\n"
                 . "Github: *https://github.com/PHPBrickLayer/lay*\n"
                 . "Alternatively, just create a new domain, it will be added automatically!"
             );
