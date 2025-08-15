@@ -1,5 +1,5 @@
 {
-    "name": "bricklayer/structure",
+    "name": "pillardash/lay-core",
     "description": "The core framework for Lay. The builder's builder",
     "keywords": ["framework", "lay", "lite framework", "lite php framework", "metaframework", "fast php framework"],
     "type": "library",
@@ -16,8 +16,8 @@
         }
     ],
     "support": {
-        "source": "https://github.com/PHPBrickLayer/structure",
-        "issues": "https://github.com/PHPBrickLayer/structure/issues"
+        "source": "https://github.com/pillardash/lay-core",
+        "issues": "https://github.com/pillardash/lay-core/issues"
     },
     "require": {
         "php": "^8.2",
