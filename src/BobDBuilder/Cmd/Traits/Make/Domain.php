@@ -42,17 +42,9 @@ trait Domain
         if(!$this->plug->is_internal && in_array($domain, ["Default", "Api"] )) {
             $this->plug->failed();
             $this->plug->write_warn(
-                "Unfortunately you cannot create a this domain like this!\n"
-                . "To reset your *Default* and *Api* domains, you can run the command *php bob project:create --force-refresh*\n"
-                . "If you need to reset one of them, you can navigate to\n"
-                . "Github: *https://github.com/PHPBrickLayer/lay*\n"
-                . "Alternatively, just create a new domain, it will be added automatically!"
+                "Unfortunately you cannot create a domain with this name!\n"
+                . "To reset your *Default* and *Api* domains, you can run the command *php bob project:create --force-refresh*"
             );
-        }
-
-        if($domain == "Default" && $this->plug->is_internal) {
-            $domain_id = "default";
-            $pattern = "*";
         }
 
         if (!$this->plug->force && $exists)
@@ -71,17 +63,32 @@ trait Domain
             LayDir::unlink($domain_dir);
         }
 
+        $internal_domain = "Domain";
+
+        if($domain == "Default") {
+            $domain_id = "default";
+            $pattern = "*";
+        }
+
+        if($domain == "Api") {
+            $domain_id = "api-endpoint";
+            $pattern = "api";
+            $internal_domain = "ApiDomain";
+        }
+
         $this->talk("- Creating new Domain directory in *$domain_dir*");
-        LayDir::copy($this->internal_dir . "Domain", $domain_dir);
+        LayDir::copy($this->internal_dir . $internal_domain, $domain_dir);
 
         $this->talk("- Copying default files");
         $this->domain_default_files($domain, $domain_id, $domain_dir);
 
-        $this->talk("- Linking .htaccess *{$this->plug->server->web}*");
-        new BobExec("link:htaccess $domain --silent");
+        if($domain != 'Api') {
+            $this->talk("- Linking .htaccess *{$this->plug->server->web}*");
+            new BobExec("link:htaccess $domain --silent");
 
-        $this->talk("- Linking shared directory *{$this->plug->server->shared}*");
-        new BobExec("link:dir web{$this->plug->s}shared web{$this->plug->s}domains{$this->plug->s}$domain{$this->plug->s}public{$this->plug->s}shared --silent");
+            $this->talk("- Linking shared directory *{$this->plug->server->shared}*");
+            new BobExec("link:dir web{$this->plug->s}shared web{$this->plug->s}domains{$this->plug->s}$domain{$this->plug->s}public{$this->plug->s}shared --silent");
+        }
 
         $this->talk("- Updating domains entry in *{$this->plug->server->web}index.php*");
         $this->update_general_domain_entry($domain, $domain_id, $pattern);

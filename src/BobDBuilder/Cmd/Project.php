@@ -5,7 +5,7 @@ namespace BrickLayer\Lay\BobDBuilder\Cmd;
 use BrickLayer\Lay\BobDBuilder\BobExec;
 use BrickLayer\Lay\BobDBuilder\EnginePlug;
 use BrickLayer\Lay\BobDBuilder\Interface\CmdLayout;
-use BrickLayer\Lay\Core\LayConfig;
+use BrickLayer\Lay\Core\Server;
 use BrickLayer\Lay\Libs\Dir\LayDir;
 
 
@@ -50,6 +50,12 @@ final class Project implements CmdLayout
         if (!file_exists($server->root . ".env"))
             copy($server->root . ".env.example", $server->root . ".env");
 
+        // Create Lay dependent directories if they don't exist
+        LayDir::make($server->temp, 0755, true);
+        LayDir::make($server->exceptions, 0755, true);
+        LayDir::make($server->cron_outputs, 0755, true);
+        LayDir::make($server->shared, 0777, true);
+
         // copy core lay js file to project lay folder
         LayDir::copy($server->lay_static . "omjs", $server->shared . "lay");
 
@@ -61,24 +67,22 @@ final class Project implements CmdLayout
             $server->lay . ".gitignore",
         );
 
-        // Create Lay dependent directories if they don't exist
-        LayDir::make($server->temp, 0755, true);
-        LayDir::make($server->exceptions, 0755, true);
-        LayDir::make($server->cron_outputs, 0755, true);
-
-
         if($tag == "--force-refresh") {
             $this->plug->write_info("Default domain forcefully refreshed");
-            LayConfig::generate_project_identity(true);
+            Server::new()->project_id(true);
 
             new BobExec("make:domain Default '*' --silent --force");
             new BobExec("make:domain Api '*' --silent --force");
+
+            // Copy default images
+            LayDir::copy($server->lay_static . "img", $server->shared . "static/dev/images");
+
             return;
         }
 
         if($tag == "--fresh-project") {
             $this->plug->write_info("Fresh project detected!");
-            LayConfig::generate_project_identity(true);
+            Server::new()->project_id(true);
 
             // Replace default domain folder on a fresh project
             new BobExec("make:domain Default '*' --silent --force");

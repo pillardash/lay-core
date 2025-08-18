@@ -2,13 +2,12 @@
 
 namespace BrickLayer\Lay\Libs\LayLogReader;
 
-use BrickLayer\Lay\Core\LayConfig;
+use BrickLayer\Lay\Core\Server;
 use BrickLayer\Lay\Libs\Dir\Enums\SortOrder;
 use BrickLayer\Lay\Libs\Dir\LayDir;
 use BrickLayer\Lay\Libs\LayDate;
 use BrickLayer\Lay\Libs\Primitives\Enums\LayLoop;
 use DirectoryIterator;
-use Generator;
 
 abstract class LayLogReader
 {
@@ -30,7 +29,7 @@ abstract class LayLogReader
         $file_entry_cache = [];
 
         LayDir::read(
-            LayConfig::server_data()->exceptions,
+            Server::new()->exceptions,
             function (string $name, string $dir, $handler, $file) use ($as_html, $max_files, &$file_entry_cache) {
                 if($file['index'] == $max_files) return LayLoop::BREAK;
 
@@ -169,7 +168,7 @@ abstract class LayLogReader
         $all_log = "";
 
         LayDir::read(
-            LayConfig::server_data()->temp . "emails",
+            Server::new()->temp . "emails",
             function (string $file, string $dir, DirectoryIterator $handler, array $entry) use (&$all_log) {
                 $message = file_get_contents($entry['full_path']);
                 $time = LayDate::date(str_replace(["[","]",".log"], "", $file));

@@ -2,7 +2,8 @@
 declare(strict_types=1);
 namespace BrickLayer\Lay\Orm\Traits;
 
-use BrickLayer\Lay\Core\LayConfig;
+use BrickLayer\Lay\Core\App;
+use BrickLayer\Lay\Core\Server;
 use BrickLayer\Lay\Libs\Dir\LayDir;
 use BrickLayer\Lay\Libs\LayFn;
 use BrickLayer\Lay\Orm\Connections\MySql;
@@ -91,7 +92,7 @@ trait Config{
                 self::$active_driver->value . "]. Please change db driver to: " . OrmDriver::SQLITE->value . " or " .  OrmDriver::SQLITE3->value
             );
 
-        $db = LayConfig::server_data()->db;
+        $db = Server::new()->db;
         self::$db_name = str_replace("/", DIRECTORY_SEPARATOR, $db_file);
         $db_file =  $db . self::$db_name;
 
@@ -217,12 +218,12 @@ trait Config{
             return;
         }
 
-        $is_mac = LayConfig::get_os() == "MAC";
+        $is_mac = Server::os() == "MAC";
 
         // Check if it's a MacOS, if so don't use host, because MAC has a pgsql bug, that makes it crash apache
         $conn_arg = $is_mac ? "" : "host=$host ";
 
-        $project_name = "Lay_" . LayConfig::get_project_identity();
+        $project_name = "Lay_" . App::id();
         $conn_arg .= "port=$port dbname=$db user=$user password=$password options='--client_encoding=$charset --application_name=$project_name'";
 
         $connected = $connect_now($conn_arg);
@@ -379,63 +380,36 @@ trait Config{
         return self::$connected;
     }
 
-    /**
-     * @param $connection string|null|array{
-     *     host: string,
-     *     user: string,
-     *     password: string,
-     *     db: string,
-     *     port: string,
-     *     socket: string,
-     *     silent: bool,
-     *     auto_commit: bool,
-     *     persist_connection: bool,
-     *     ssl: array{
-     *         certificate: string,
-     *         ca_certificate: string,
-     *         ca_path: string,
-     *         cipher_algos: string,
-     *         flag: int,
-     *     }
-     * } An array of db connection or a string for sqlite db
-     * @param OrmDriver|null $driver
-     * @return self
-     */
-    public static function init(
-        array|null|string $connection = null,
-        ?OrmDriver $driver = OrmDriver::MYSQL
-    ): self
+    public static function init(): self
     {
-        $driver = $driver ?? OrmDriver::tryFrom(LayFn::env('DB_DRIVER', ''));
+        $driver = OrmDriver::tryFrom(LayFn::env('DB_DRIVER', ''));
 
         if($driver === null)
             self::exception("InvalidOrmDriver", "An invalid db driver was received: [" . LayFn::env('DB_DRIVER') . "]. Please specify the `DB_DRIVER`. Valid keys includes any of the following: [" . OrmDriver::stringify() . "]");
 
-        if($connection === null) {
-            $connection = match ($driver) {
-                OrmDriver::SQLITE, OrmDriver::SQLITE3 => LayFn::env('SQLITE_DB'),
-                default => [
-                    "host" => LayFn::env('DB_HOST'),
-                    "user" => LayFn::env('DB_USERNAME'),
-                    "password" => LayFn::env('DB_PASSWORD'),
-                    "db" => LayFn::env('DB_NAME'),
-                    "port" => LayFn::env('DB_PORT'),
-                    "socket" => LayFn::env('DB_SOCKET'),
-                    "charset" => LayFn::env('DB_CHARSET'),
-                    "silent" => LayFn::env('DB_ALLOW_STARTUP_ERROR', false),
-                    "auto_commit" => LayFn::env('DB_AUTO_COMMIT', true),
-                    "persist_connection" => LayFn::env('DB_PERSIST_CONNECTION', false),
-                    "ssl" => [
-                        "key" => LayFn::env('DB_SSL_KEY'),
-                        "certificate" => LayFn::env('DB_SSL_CERTIFICATE'),
-                        "ca_certificate" => LayFn::env('DB_SSL_CA_CERTIFICATE'),
-                        "ca_path" => LayFn::env('DB_SSL_CA_PATH'),
-                        "cipher_algos" => LayFn::env('DB_SSL_CIPHER_ALGOS'),
-                        "flag" => LayFn::env('DB_SSL_FLAG', 0),
-                    ],
+        $connection = match ($driver) {
+            OrmDriver::SQLITE, OrmDriver::SQLITE3 => LayFn::env('SQLITE_DB'),
+            default => [
+                "host" => LayFn::env('DB_HOST'),
+                "user" => LayFn::env('DB_USERNAME'),
+                "password" => LayFn::env('DB_PASSWORD'),
+                "db" => LayFn::env('DB_NAME'),
+                "port" => LayFn::env('DB_PORT'),
+                "socket" => LayFn::env('DB_SOCKET'),
+                "charset" => LayFn::env('DB_CHARSET'),
+                "silent" => LayFn::env('DB_ALLOW_STARTUP_ERROR', false),
+                "auto_commit" => LayFn::env('DB_AUTO_COMMIT', true),
+                "persist_connection" => LayFn::env('DB_PERSIST_CONNECTION', false),
+                "ssl" => [
+                    "key" => LayFn::env('DB_SSL_KEY'),
+                    "certificate" => LayFn::env('DB_SSL_CERTIFICATE'),
+                    "ca_certificate" => LayFn::env('DB_SSL_CA_CERTIFICATE'),
+                    "ca_path" => LayFn::env('DB_SSL_CA_PATH'),
+                    "cipher_algos" => LayFn::env('DB_SSL_CIPHER_ALGOS'),
+                    "flag" => LayFn::env('DB_SSL_FLAG', 0),
                 ],
-            };
-        }
+            ],
+        };
 
         if(is_string($connection))
             $driver = OrmDriver::SQLITE;
@@ -443,6 +417,7 @@ trait Config{
         self::$uuid_version = LayFn::env("DB_UUID_VERSION", 7);
         self::$active_driver = $driver;
         self::$persist_connection = $connection['persist_connection'] ?? true;
+
         self::new()->set_db($connection);
 
         return self::new();

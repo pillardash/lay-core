@@ -2,15 +2,14 @@
 declare(strict_types=1);
 namespace BrickLayer\Lay\Core\View\Tags;
 
+use BrickLayer\Lay\Core\App;
 use BrickLayer\Lay\Core\Exception;
 use JetBrains\PhpStorm\ExpectedValues;
 
 use BrickLayer\Lay\Core\View\Domain;
 use BrickLayer\Lay\Core\View\DomainResource;
 use BrickLayer\Lay\Core\View\Tags\Traits\Standard;
-use BrickLayer\Lay\Core\LayConfig;
 use BrickLayer\Lay\Core\View\Enums\DomainType;
-use BrickLayer\Lay\Core\View\ViewBuilder;
 
 final class Anchor {
     private string $link = "";
@@ -26,9 +25,8 @@ final class Anchor {
         $dom = DomainResource::get()->domain;
         $link = is_null($link) ? '' : $link;
         $link = ltrim($link, "/");
-        $use_subdomain = $use_subdomain !== null ? $use_subdomain : LayConfig::new()->use_domain_as_sub();
 
-        $base = LayConfig::site_data();
+        $base = App::new();
         $base_full = $dom->domain_uri;
 
         if($domain_id) {
@@ -52,7 +50,7 @@ final class Anchor {
                 else {
                     $base_full = explode($dom->pattern . "/", $base_full, 2)[0] . $pattern;
 
-                    if($use_subdomain && !empty($pattern) && LayConfig::$ENV_IS_PROD)
+                    if($use_subdomain && !empty($pattern) && App::is_prod())
                         $base_full = $base->proto . $pattern . "." . $base->domain_no_proto_no_www;
                 }
             }

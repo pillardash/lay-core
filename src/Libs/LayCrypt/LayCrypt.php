@@ -2,8 +2,9 @@
 
 namespace BrickLayer\Lay\Libs\LayCrypt;
 
-use BrickLayer\Lay\Core\LayConfig;
+use BrickLayer\Lay\Core\App;
 use BrickLayer\Lay\Core\LayException;
+use BrickLayer\Lay\Core\Server;
 use BrickLayer\Lay\Libs\LayCrypt\Enums\HashType;
 use BrickLayer\Lay\Libs\LayCrypt\Enums\JwtError;
 use BrickLayer\Lay\Libs\LayDate;
@@ -53,7 +54,7 @@ class LayCrypt
     {
         if($string == null) return null;
 
-        $salt = LayFn::env('LAY_CRYPT_SALT', LayConfig::app_id() ?? 'weak-salted-key');
+        $salt = LayFn::env('LAY_CRYPT_SALT', App::id() ?? 'weak-salted-key');
 
         $layer = hash("sha512", "ukpato-" . $salt . "-nohaso");
 
@@ -74,7 +75,7 @@ class LayCrypt
     public static function csrf_gen(string $user_data, ?string $key = null) : string
     {
         if(!$key)
-            $key = LayFn::env('LAY_CSRF_KEY', LayConfig::get_project_identity() . '_csrf_gen');
+            $key = LayFn::env('LAY_CSRF_KEY', Server::new()->project_id() . '_csrf_gen');
 
         return hash_hmac('sha256', $user_data, $key);
     }
@@ -91,7 +92,7 @@ class LayCrypt
                 'sha256',
                 self::$jwt_secret ?? LayFn::env(
                 'LAY_JWT_SECRET',
-                LayConfig::get_project_identity()
+                Server::new()->project_id()
             )
             )
         );
@@ -112,7 +113,7 @@ class LayCrypt
         $payload = [ 'data' => $payload ];
         $payload['iat'] = LayDate::now();
         $payload['exp'] = LayDate::unix($expires);
-        $payload['iss'] = $issuer ?? LayConfig::site_data()->base_no_proto_no_www;
+        $payload['iss'] = $issuer ?? App::new()->base_no_proto_no_www;
         $payload['nbf'] ??= $payload['iat'] - 50;
 
         if($audience)

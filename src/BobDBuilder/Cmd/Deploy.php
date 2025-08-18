@@ -5,13 +5,11 @@ namespace BrickLayer\Lay\BobDBuilder\Cmd;
 use BrickLayer\Lay\BobDBuilder\BobExec;
 use BrickLayer\Lay\BobDBuilder\EnginePlug;
 use BrickLayer\Lay\BobDBuilder\Interface\CmdLayout;
-use BrickLayer\Lay\Core\LayConfig;
+use BrickLayer\Lay\Core\Server;
 use BrickLayer\Lay\Libs\Dir\LayDir;
-use BrickLayer\Lay\Libs\LayArray;
 use BrickLayer\Lay\Libs\LayCache;
 use BrickLayer\Lay\Libs\LayDate;
 use BrickLayer\Lay\Libs\Primitives\Enums\LayLoop;
-use BrickLayer\Lay\Libs\Symlink\LaySymlink;
 use DirectoryIterator;
 use Exception;
 
@@ -121,7 +119,7 @@ final class Deploy implements CmdLayout
 
     public function batch_minification(string $src_dir, string $output_dir, ?string $domain = null): void
     {
-        $domain_root = LayConfig::server_data()->domains . $domain . DIRECTORY_SEPARATOR;
+        $domain_root = Server::new()->domains . $domain . DIRECTORY_SEPARATOR;
 
         $copy_only = [];
 
@@ -140,7 +138,7 @@ final class Deploy implements CmdLayout
         }
 
         if(isset($this->config)) {
-            $root = LayConfig::server_data()->root;
+            $root = Server::new()->root;
 
             foreach($this->config->purge_config ?? [] as $dm => $list) {
                 if($dm != $domain) continue;
@@ -295,9 +293,6 @@ final class Deploy implements CmdLayout
             },
 
             use_symlink: true,
-
-            symlink_db_filename: "static_assets.json"
-
         );
 
         $cache->dump($track_changes);

@@ -3,8 +3,9 @@
 namespace BrickLayer\Lay\Libs\ServerEvents;
 
 use BrickLayer\Lay\Core\Api\Enums\ApiStatus;
-use BrickLayer\Lay\Core\LayConfig;
+use BrickLayer\Lay\Core\App;
 use BrickLayer\Lay\Core\LayException;
+use BrickLayer\Lay\Core\Server;
 use BrickLayer\Lay\Core\View\Domain;
 use BrickLayer\Lay\Libs\LayFn;
 use BrickLayer\Lay\Libs\Primitives\Enums\LayLoop;
@@ -30,7 +31,7 @@ class Events
         if (Domain::is_in_use())
             $id = Domain::current_route_data("route");
 
-        return LayConfig::get_ip() . "_+_" . $id;
+        return App::get_ip() . "_+_" . $id;
     }
 
     private function cache_event_id() : void
@@ -76,7 +77,7 @@ class Events
 
         $this->set_headers();
 
-        $abort_event_loop = LayConfig::server_data()->temp . "abort_event_loop";
+        $abort_event_loop = Server::new()->temp . "abort_event_loop";
 
         while (!connection_aborted() && self::$is_streaming) {
             if (

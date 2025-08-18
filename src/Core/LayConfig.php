@@ -2,6 +2,7 @@
 declare(strict_types=1);
 namespace BrickLayer\Lay\Core;
 
+use BrickLayer\Lay\Core\Resources\Server;
 use BrickLayer\Lay\Core\Traits\Config;
 use BrickLayer\Lay\Core\Traits\Includes;
 use BrickLayer\Lay\Core\Traits\Init;
@@ -16,5 +17,9 @@ final class LayConfig {
     use Init;
     use Config;
     use Resources;
-    use Includes;
+
+    public static function server_data() : Server
+    {
+        return Server::new();
+    }
 }

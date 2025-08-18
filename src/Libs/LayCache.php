@@ -3,7 +3,7 @@
 namespace BrickLayer\Lay\Libs;
 
 use BrickLayer\Lay\Core\Exception;
-use BrickLayer\Lay\Core\LayConfig;
+use BrickLayer\Lay\Core\Server;
 use BrickLayer\Lay\Libs\Dir\LayDir;
 use BrickLayer\Lay\Libs\Primitives\Traits\IsSingleton;
 
@@ -82,9 +82,9 @@ final class LayCache
 
     public function cache_file(string $path_to_cache = "./", bool $use_lay_temp_dir = true, bool $invalidate = false): static
     {
-        $server = LayConfig::server_data();
+        $server = Server::new();
 
-        $this->cache_store = $use_lay_temp_dir ? LayConfig::mk_tmp_dir() : $server->root;
+        $this->cache_store = $use_lay_temp_dir ? $server->make_temp_dir() : $server->root;
         $this->cache_store = $this->cache_store . "cache/";
 
         LayDir::make($this->cache_store, 0755, true);

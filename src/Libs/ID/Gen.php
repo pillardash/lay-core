@@ -2,8 +2,8 @@
 
 namespace BrickLayer\Lay\Libs\ID;
 
+use BrickLayer\Lay\Core\App;
 use BrickLayer\Lay\Core\Exception;
-use BrickLayer\Lay\Core\LayConfig;
 use BrickLayer\Lay\Core\LayException;
 use BrickLayer\Lay\Libs\Primitives\Traits\IsSingleton;
 use BrickLayer\Lay\Libs\String\Enum\EscapeType;
@@ -60,7 +60,7 @@ final class Gen
     {
         $value = Escape::clean($value,EscapeType::STRIP_TRIM_ESCAPE, [ "strict" => true ]);
 
-        $db = LayConfig::get_orm()->open($table)->where($column, "$value");
+        $db = App::orm()->open($table)->where($column, "$value");
 
         if(isset(self::$more_query))
             (self::$more_query)($db);

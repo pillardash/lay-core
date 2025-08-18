@@ -2,8 +2,8 @@
 declare(strict_types=1);
 namespace BrickLayer\Lay\Libs\Symlink;
 
-use BrickLayer\Lay\Core\LayConfig;
 use BrickLayer\Lay\Core\LayException;
+use BrickLayer\Lay\Core\Server;
 use BrickLayer\Lay\Libs\Dir\LayDir;
 
 final class LaySymlink {
@@ -15,7 +15,7 @@ final class LaySymlink {
         $dest = str_replace(['/', DIRECTORY_SEPARATOR], DIRECTORY_SEPARATOR, $dest);
 
         // Make Symlink a relative path
-        $root = LayConfig::server_data()->root;
+        $root = Server::new()->root;
 
         $src = str_replace($root, "", $src);
         $dest = rtrim(str_replace($root, "", $dest), DIRECTORY_SEPARATOR);
@@ -32,7 +32,7 @@ final class LaySymlink {
 
         $src = $d_slash . $src;
 
-        if(LayConfig::new()->get_os() == "WINDOWS") {
+        if(Server::os() == "WINDOWS") {
             $type = $type ? $type->value : "";
             $type = is_dir($src) ? SymlinkWindowsType::SOFT->value : $type;
 

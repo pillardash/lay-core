@@ -2,8 +2,8 @@
 declare(strict_types=1);
 namespace BrickLayer\Lay\Libs\Mail;
 
-use BrickLayer\Lay\Core\LayConfig;
 use BrickLayer\Lay\Core\LayException;
+use BrickLayer\Lay\Core\Server;
 use BrickLayer\Lay\Libs\Cron\LayCron;
 use BrickLayer\Lay\Libs\LayDate;
 use BrickLayer\Lay\Libs\LayFn;
@@ -48,52 +48,6 @@ final class MailerQueueHandler {
                 time_sent timestamp DEFAULT NULL
             )"
         );
-    }
-
-    /**
-     * Deletes stale mails that have exceeded a specific timeframe; 15 days by default].
-     * If the project requires storing sent mails, the first argument should be used to specify that
-     *
-     * @param bool $include_sent_mails
-     * @param int $days_after
-     * @return bool
-     * @throws \Exception
-     */
-    private function hard_delete_mails(bool $include_sent_mails = true, int $days_after = 15) : bool
-    {
-        $orm = self::orm(self::$table);
-
-        $orm->where(
-            $orm->days_diff(LayDate::date(), "time_sent"),
-            ">",
-            (string) max($days_after, 0)
-        );
-
-        $orm->wrap(
-            "OR",
-            function (SQL $orm) use($days_after) {
-                $orm->where("time_sent", "IS", "NULL");
-
-                $orm->wrap("AND", function (SQL $orm) use($days_after) {
-                    $orm->where("status", MailerStatus::FAILED->name);
-                    $orm->or_where(
-                        $orm->days_diff(LayDate::date(), "created_at"),
-                        ">",
-                        (string) max($days_after, 0)
-                    );
-                });
-            },
-        );
-
-        if(!$include_sent_mails)
-            $orm->and_where("status", "!=", MailerStatus::SENT->name);
-
-        $del = $orm->delete();
-
-        if($del)
-            Mailer::write_to_log("[x] -- Deleted stale emails");
-
-        return $del;
     }
 
     public function has_queued_items() : bool
@@ -203,7 +157,7 @@ final class MailerQueueHandler {
         if(!$res)
             return false;
 
-        $server = LayConfig::server_data();
+        $server = Server::new();
 
         $out = LayCron::new()
             ->job_id(self::JOB_UID)
@@ -228,14 +182,47 @@ final class MailerQueueHandler {
     }
 
     /**
-     * @see hard_delete_mails()
+     * Deletes stale mails that have exceeded a specific timeframe; 15 days by default.
+     * Sent mails are also deleted by default. If you app doesn't require this. Specify via the env file
+     * If the project requires storing sent mails, the first argument should be used to specify that
+     *
      * @param bool $include_sent_mails
      * @return void
      * @throws \Exception
      */
-    public function delete_stale_mails(bool $include_sent_mails = true) : void
+    public function delete_stale_mails(bool $include_sent_mails, int $days_after) : void
     {
-        $this->hard_delete_mails($include_sent_mails);
+        $orm = self::orm(self::$table);
+
+        $orm->where(
+            $orm->days_diff(LayDate::date(), "time_sent"),
+            ">",
+            (string) max($days_after, 0)
+        );
+
+        $orm->wrap(
+            "OR",
+            function (SQL $orm) use($days_after) {
+                $orm->where("time_sent", "IS", "NULL");
+
+                $orm->wrap("AND", function (SQL $orm) use($days_after) {
+                    $orm->where("status", MailerStatus::FAILED->name);
+                    $orm->or_where(
+                        $orm->days_diff(LayDate::date(), "created_at"),
+                        ">",
+                        (string) max($days_after, 0)
+                    );
+                });
+            },
+        );
+
+        if(!$include_sent_mails)
+            $orm->and_where("status", "!=", MailerStatus::SENT->name);
+
+        $del = $orm->delete();
+
+        if($del)
+            Mailer::write_to_log("[x] -- Deleted stale emails");
     }
 
 }

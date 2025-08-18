@@ -7,7 +7,6 @@ use BrickLayer\Lay\BobDBuilder\Helper\Console\Console;
 use BrickLayer\Lay\BobDBuilder\Helper\Console\Format\Foreground;
 use BrickLayer\Lay\BobDBuilder\Helper\Console\Format\Style;
 use BrickLayer\Lay\Core\Api\Enums\ApiStatus;
-use BrickLayer\Lay\Core\Enums\LayMode;
 use BrickLayer\Lay\Core\View\Domain;
 use BrickLayer\Lay\Libs\Dir\LayDir;
 use BrickLayer\Lay\Libs\LayFn;
@@ -43,7 +42,7 @@ final class CoreException
             if(error_reporting() != E_ALL)
                 return false;
 
-            $eol = LayConfig::get_mode() == LayMode::HTTP ? "<br>" . PHP_EOL : PHP_EOL;
+            $eol = App::is_not_cli() ? "<br>" . PHP_EOL : PHP_EOL;
 
             if($err_no === E_WARNING || $err_no === E_USER_WARNING) {
                 $this->use_exception(
@@ -98,7 +97,7 @@ final class CoreException
 
     public function get_env(): string
     {
-        return LayConfig::$ENV_IS_DEV ? "DEVELOPMENT" : "PRODUCTION";
+        return App::is_prod() ? "PRODUCTION" : "DEVELOPMENT";
     }
 
     /**
@@ -193,7 +192,7 @@ final class CoreException
                 "WrongEnvInvoke",
                 "You are throwing an exception with the wrong method on a production environment.\n"
                 . "*kill_and_trace()* method is meant to be used in a development environment only. \n"
-                . "If you are in a development environment, please use *\BrickLayer\Lay\Core\LayConfig::\$ENV_IS_DEV = true;* before calling this method"
+                . "If you are in a development environment, please use *App::change_env(true);* before calling this method"
             );
 
         $opts = [
@@ -248,8 +247,8 @@ final class CoreException
 
         $show_internal_trace = $other['show_internal_trace'] ?? self::$show_internal_trace;
 
-        $cli_mode = LayConfig::get_mode() === LayMode::CLI;
-        $use_json = $this->throw_as_json ?: !isset(LayConfig::user_agent()['browser']);
+        $cli_mode = App::is_cli();
+        $use_json = $this->throw_as_json ?: !isset(App::user_agent()['browser']);
         $use_json = $cli_mode ? false : $use_json;
 
         if($env == "DEVELOPMENT" && self::$ERROR_AS_HTML && $use_json) {
@@ -263,14 +262,14 @@ final class CoreException
             }
         }
 
-        $ip = LayConfig::get_ip();
-        $os = LayConfig::user_agent()['platform'] ?? "NOT SPECIFIED";
+        $ip = App::get_ip();
+        $os = App::user_agent()['platform'] ?? "NOT SPECIFIED";
         $php_ver = phpversion();
-        $server = LayConfig::get_server_type()->name;
+        $server = Server::type()->name;
 
         $referer = $_SERVER['HTTP_REFERER'] ?? ($cli_mode ? "CLI MODE" : 'unknown');
         $origin = $_SERVER['HTTP_ORIGIN'] ?? $_SERVER['HTTP_HOST'] ?? $referer;
-        $cors_active = LayConfig::cors_active() ? "ACTIVE" : "INACTIVE";
+        $cors_active = Startup::cors_active() ? "ACTIVE" : "INACTIVE";
 
         $route = null;
         $api_route = "false";
@@ -282,7 +281,7 @@ final class CoreException
             $route = $route_data['domain_uri'] . ltrim($route_data['route'], "api/");
         }
 
-        $req_headers = LayConfig::get_header("*");
+        $req_headers = App::get_header("*");
 
         $request_route = $route ?? 'CLI_REQUEST';
         $request_method = $_SERVER['REQUEST_METHOD'] ?? 'CLI_METHOD';
@@ -314,13 +313,11 @@ final class CoreException
         $internal_traces = "";
         $internal_traces_raw = "";
 
-        $s = DIRECTORY_SEPARATOR;
-
         foreach ($other['stack'] as $v) {
             if (!isset($v['file']) && !isset($v['line']))
                 continue;
 
-            $is_internal = str_contains($v['file'], "bricklayer{$s}structure{$s}src{$s}") || str_contains($v['file'], "bricklayer{$s}structure{$s}src{$s}");
+            $is_internal = str_starts_with($v['file'], Server::new()->framework);
 
             if(!$show_internal_trace && $is_internal)
                 continue;
@@ -500,7 +497,7 @@ final class CoreException
         if(!$this->always_log)
             return $rtn;
 
-        $dir = LayConfig::server_data()->exceptions;
+        $dir = Server::new()->exceptions;
         $file_log = $this->increment_log_file($dir . date("Y-m-d") . ".log");
 
         LayDir::make($dir, 0755, true);
@@ -568,7 +565,7 @@ final class CoreException
 
         SQL::new()->__rollback_on_error();
 
-        $throw_500 = $this->throw_500 && LayConfig::get_mode() === LayMode::HTTP;
+        $throw_500 = $this->throw_500 && App::is_not_cli();
 
         if($throw_500) {
             self::$HAS_500 = true;
@@ -613,7 +610,7 @@ final class CoreException
         // Call CORS so that the HTTP response returns the correct code, rather than CORS error, especially
         // when CORS has been well set.
         Domain::set_entries_from_file();
-        LayConfig::call_lazy_cors();
+        Startup::call_lazy_cors(true);
 
         if($act['display_error'] && $opt['echo_error']) {
             self::$already_caught = true;
@@ -622,7 +619,7 @@ final class CoreException
             if(!$this->throw_as_json)
                 LayFn::header("Content-Type: text/html");
 
-            if(Events::$is_streaming && LayConfig::get_mode() !== LayMode::CLI) {
+            if(Events::$is_streaming && App::is_not_cli()) {
                 (new Events())->__exception();
             }
             else {

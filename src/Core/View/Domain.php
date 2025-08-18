@@ -6,10 +6,11 @@ namespace BrickLayer\Lay\Core\View;
 use BrickLayer\Lay\Core\Annotate\CurrentRouteData;
 use BrickLayer\Lay\Core\Api\ApiEngine;
 use BrickLayer\Lay\Core\Api\Enums\ApiStatus;
-use BrickLayer\Lay\Core\Enums\LayMode;
 use BrickLayer\Lay\Core\Enums\LayServerType;
 use BrickLayer\Lay\Core\Exception;
-use BrickLayer\Lay\Core\LayConfig;
+use BrickLayer\Lay\Core\App;
+use BrickLayer\Lay\Core\Server;
+use BrickLayer\Lay\Core\Startup;
 use BrickLayer\Lay\Core\View\Enums\DomainCacheKeys;
 use BrickLayer\Lay\Core\View\Enums\DomainType;
 use BrickLayer\Lay\Libs\LayDate;
@@ -52,25 +53,22 @@ final class Domain {
     private static bool $cli_mode = false;
     private static bool $mocking_domain = false;
     private static bool $thrown_exception = false;
-
     private static bool $lay_init = false;
-    private static LayConfig $layConfig;
-    private static object $site_data;
+
     private static bool $cache_domains = true;
     private static bool $cache_domain_set = false;
     private static bool $domain_found = false;
     private static string $domain_list_key = "__LAY_DOMAINS__";
     private static array $domain_ram;
+
     private static DomainType $domain_type;
+    private static App $app;
 
     private static function init_lay() : void {
         if(self::$lay_init || self::$list_domain_only)
             return;
 
-        LayConfig::is_init();
-        self::$layConfig = LayConfig::new();
-        self::$site_data = self::$layConfig::site_data();
-
+        self::$app = App::new();
         self::$lay_init = true;
     }
 
@@ -79,7 +77,7 @@ final class Domain {
             return;
 
         self::$cache_domain_set = true;
-        self::$cache_domains = self::$layConfig::$ENV_IS_PROD && self::$site_data->cache_domains;
+        self::$cache_domains = App::is_prod() && LayFn::env('CACHE_DOMAINS');
     }
 
     private function cache_domain_ram() : void {
@@ -186,7 +184,8 @@ final class Domain {
         $domain_name = $file[1];
         $domain_root = "web" . DIRECTORY_SEPARATOR . "domains" . DIRECTORY_SEPARATOR . "$domain_name" . DIRECTORY_SEPARATOR;
 
-        $data = LayConfig::site_data();
+        $data = App::new();
+
         $domain_base = $data->use_domain_file ? "domains/$domain_name/public/" : "";
         $domain_base = str_replace("/Api/", "/" . ($_SERVER['HTTP_LAY_DOMAIN'] ?? $domain_name) . "/", $domain_base, $is_api);
 
@@ -208,7 +207,7 @@ final class Domain {
         self::$current_route_details['domain_id'] = $id;
         self::$current_route_details['domain_uri'] = str_replace("/web/", "/", $data->domain) . $uri;
         self::$current_route_details['domain_base'] = $data->domain . $domain_base;
-        self::$current_route_details['domain_root'] = LayConfig::server_data()->root . $domain_root;
+        self::$current_route_details['domain_root'] = Server::new()->root . $domain_root;
         self::$current_route_details['plaster'] = self::$current_route_details['domain_root'] . "plaster" . DIRECTORY_SEPARATOR;
         self::$current_route_details['layout'] = self::$current_route_details['domain_root'] . "layout" . DIRECTORY_SEPARATOR;
 
@@ -219,7 +218,7 @@ final class Domain {
         DomainResource::init();
 
         // Include domain-level foundation file
-        $web_root = LayConfig::server_data()->web;
+        $web_root = Server::new()->web;
 
         if(file_exists($web_root . "foundation.php"))
             include_once $web_root . "foundation.php";
@@ -230,8 +229,8 @@ final class Domain {
         if(self::$cli_mode)
             return;
 
-        // Make lazy CORS configuration become active after loading all foundation files incase there was an overwrite
-        LayConfig::call_lazy_cors();
+        // Make lazy CORS configuration become active after loading all foundation files in case there was an overwrite
+        Startup::call_lazy_cors();
 
         if(self::$mocking_domain)
             return;
@@ -289,7 +288,7 @@ final class Domain {
         $ext = explode("?", strtolower((string) end($x)))[0];
 
         if(count($x) > 1 && in_array($ext,$ext_array,true)) {
-            if(in_array($ext, self::$site_data->ext_ignore_list,true))
+            if(in_array($ext, self::$app->ext_ignore_list ?? [],true))
                 return $view;
 
             LayFn::header("Content-Type: application/json");
@@ -303,7 +302,7 @@ final class Domain {
 
     private function include_static_assets(string $route) : void
     {
-        $referer = LayConfig::get_header("Referer");
+        $referer = App::get_header("Referer");
         $from_js_module = $referer && str_contains($referer, ".js");
 
         if(!$from_js_module)
@@ -357,7 +356,7 @@ final class Domain {
 
         self::init_lay();
 
-        if(LayConfig::get_mode() == LayMode::CLI) {
+        if(App::is_cli()) {
             self::$cli_mode = true;
             self::$current_route_has_end_slash = false;
             return self::$current_route = "index";
@@ -371,13 +370,13 @@ final class Domain {
         $get_name = "brick";
         $request_uri = $_SERVER['REQUEST_URI'];
 
-        if(LayConfig::get_server_type() == LayServerType::APACHE)
+        if(Server::type() == LayServerType::APACHE)
             $request_uri = $_GET[$get_name] ?? '';
 
         // Strip all search query, it's not needed
         $request_uri = explode("?", $request_uri, 2)[0];
 
-        $root_url = self::$site_data->base_no_proto;
+        $root_url = self::$app->base_no_proto;
         $root_file_system = rtrim(explode("index.php", $_SERVER['SCRIPT_NAME'])[0], "/");
 
         $view = str_replace(["/index.php", "/index.html"], "", $request_uri);
@@ -397,12 +396,23 @@ final class Domain {
     }
 
     /**
-     * @return (bool|string)[][]
-     *
-     * @psalm-return array{ngrok: array{value: string, found: bool}, sub: array{value: string, found: bool}, local: array{value: string, found: bool}}
+     * @return array{
+     *     ngrok: array{
+     *          value: string,
+     *          found: bool
+     *      },
+     *      sub: array{
+     *          value: string,
+     *          found: bool
+     *      },
+     *     local: array{
+     *          value: string,
+     *          found: bool
+     *     }
+     * }
      */
     private function active_pattern() : array {
-        $base = self::$site_data->base_no_proto;
+        $base = self::$app->base_no_proto;
         $sub_domain = explode(".", $base, 3);
         $local_dir = explode("/", self::$current_route, 2);
         $is_ngrok = @$_SERVER['REMOTE_ADDR'] == "127.0.0.1";
@@ -580,16 +590,16 @@ final class Domain {
         $this->index($domain_id);
 
         if($host)
-            LayConfig::mock_server($host, $use_https);
+            Server::mock($host, $use_https);
 
-        include_once LayConfig::server_data()->web . "index.php";
+        include_once Server::new()->web . "index.php";
     }
 
     public function list() : array
     {
         self::$list_domain_only = true;
 
-        include_once LayConfig::server_data()->web . "index.php";
+        include_once Server::new()->web . "index.php";
 
         return self::$domain_ram[DomainCacheKeys::List->value];
     }
@@ -611,7 +621,8 @@ final class Domain {
         return self::$current_route_details[$key];
     }
 
-    public function get_domain_by_id(string $id) : ?array {
+    public function get_domain_by_id(string $id) : ?array
+    {
         return $this->get_cached_domain_details($id);
     }
 
@@ -647,7 +658,7 @@ final class Domain {
 
         self::$mocking_domain = $mock;
 
-        $domain_entries = LayConfig::server_data()->web . "index.php";
+        $domain_entries = Server::new()->web . "index.php";
 
         //TODO: Find a way to fix the infinite loop when there is an exception before the view is displayed
 //        $is_domain_entry_file = $_SERVER['SCRIPT_FILENAME'] == $domain_entries;

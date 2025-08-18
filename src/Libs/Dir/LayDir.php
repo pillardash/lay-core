@@ -3,12 +3,11 @@ declare(strict_types=1);
 namespace BrickLayer\Lay\Libs\Dir;
 
 use BrickLayer\Lay\Core\Exception;
-use BrickLayer\Lay\Core\LayConfig;
+use BrickLayer\Lay\Core\Server;
 use BrickLayer\Lay\Libs\Dir\Enums\SortOrder;
 use BrickLayer\Lay\Libs\LayFn;
 use BrickLayer\Lay\Libs\Primitives\Enums\LayLoop;
 use BrickLayer\Lay\Libs\Symlink\LaySymlink;
-use BrickLayer\Lay\Libs\Symlink\SymlinkTrackType;
 use Closure;
 use DirectoryIterator;
 
@@ -21,7 +20,7 @@ final class LayDir {
      */
     public static function unlink(string $dir) : void
     {
-        $is_windows = LayConfig::get_os() == "WINDOWS";
+        $is_windows = Server::os() == "WINDOWS";
 
         if (!is_dir($dir)) {
             self::$result = false;
@@ -64,7 +63,7 @@ final class LayDir {
      */
     public static function in_link(string $file) : bool
     {
-        $server = LayConfig::server_data();
+        $server = Server::new();
 
         $root = $server->root;
         $file = str_replace(["/", DIRECTORY_SEPARATOR], DIRECTORY_SEPARATOR, $file);
@@ -109,7 +108,6 @@ final class LayDir {
      * @param bool $recursive
      * @param Closure|null $skip_if
      * @param bool $use_symlink Use symbolic link instead of copying files and folders
-     * @param string|null $symlink_db_filename
      * @return void
      * @throws \Exception
      */
@@ -122,27 +120,22 @@ final class LayDir {
         bool $recursive = true,
         ?Closure $skip_if = null,
         bool $use_symlink = false,
-        ?string $symlink_db_filename = null,
     ): void
     {
         if (!is_dir($src_dir))
             Exception::throw_exception("Source directory [$src_dir] is not a directory", "InvalidSrcDir");
 
-        if($use_symlink && empty($symlink_db_filename))
-            Exception::throw_exception("You want to use symlink instead of direct copy, but you didn't specify `symlink_db_filename`", "NoSymlinkDB");
-
         self::make($dest_dir, $permissions, $recursive);
 
-        if($symlink_db_filename)
-            self::$symlink = new LaySymlink($symlink_db_filename);
+        if($use_symlink)
+            self::$symlink = new LaySymlink();
 
         $has_js_css = false;
 
         $action = self::read($src_dir, function ($file, $src_dir, DirectoryIterator $handler) use (
             $dest_dir, $permissions, $recursive,
             $skip_if, $pre_copy, $post_copy,
-            $use_symlink, $symlink_db_filename,
-            &$has_js_css
+            $use_symlink, &$has_js_css
         ) {
             $s = DIRECTORY_SEPARATOR;
 
@@ -157,8 +150,7 @@ final class LayDir {
                     $current_src, $current_dest,
                     $pre_copy, $post_copy,
                     $permissions, $recursive,
-                    $skip_if,
-                    $use_symlink, $symlink_db_filename
+                    $skip_if, $use_symlink
                 );
 
                 return LayLoop::FLOW;

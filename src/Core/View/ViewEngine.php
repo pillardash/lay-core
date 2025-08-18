@@ -3,8 +3,8 @@ declare(strict_types=1);
 namespace BrickLayer\Lay\Core\View;
 
 use BrickLayer\Lay\Core\Api\ApiEngine;
+use BrickLayer\Lay\Core\App;
 use BrickLayer\Lay\Core\Exception;
-use BrickLayer\Lay\Core\LayConfig;
 use BrickLayer\Lay\Core\View\Tags\Link;
 use BrickLayer\Lay\Core\View\Tags\Script;
 use BrickLayer\Lay\Libs\LayArray;
@@ -124,21 +124,20 @@ final class ViewEngine {
         if(empty(self::$constant_attributes))
             self::constants([]);
 
-        $layConfig = LayConfig::new();
-        $data = $layConfig::site_data();
+        $data = App::new();
 
         $const = array_replace_recursive(self::$constant_attributes, $page_data);;
 
         $const[self::key_page]['title_raw'] = $const[self::key_page]['title'];
 
         if(strtolower($const[self::key_page]['title_raw']) == "homepage"){
-            $const[self::key_page]['title'] = $data->name->long;
-            $const[self::key_page]['title_raw'] = $data->name->short;
+            $const[self::key_page]['title'] = $data->name['long'];
+            $const[self::key_page]['title_raw'] = $data->name['short'];
         }
         else{
             $const[self::key_page]['title'] = !$const[self::key_core]['append_site_name'] ?
                 $const[self::key_page]['title_raw'] :
-                $const[self::key_page]['title_raw'] . " :: " . $data->name->short;
+                $const[self::key_page]['title_raw'] . " :: " . $data->name['short'];
         }
 
         self::$assets = $const[self::key_assets];
@@ -160,28 +159,25 @@ final class ViewEngine {
     private function create_html_page(?array $cache = null) : void {
         $meta = self::$meta_data;
 
-        $layConfig = LayConfig::instance();
-        $site_data = $layConfig::site_data();
+        $app = App::new();
         $client = DomainResource::get();
         $page = $meta->{self::key_page};
-        $env = $layConfig::$ENV_IS_PROD ? "PROD" : "DEV";
+        $env = $app::is_prod() ? "PROD" : "DEV";
         $iframe_embed = $page->iframe_embed ?? true;
 
-        $lay_api = $layConfig->get_global_api() ?? $client->domain->domain_uri . "api/";
+        $lay_api = $client->domain->domain_uri . "api/";
         $img = ViewSrc::gen($page->img ?? $client->shared->img_default->meta ?? $client->shared->img_default->logo);
         $favicon = ViewSrc::gen($client->shared->img_default->favicon);
-        $author = $page->author ?? $site_data->author;
+        $author = $page->author ?? $app->author;
         $title = $page->title;
         $title_raw = $page->title_raw;
         $base = $page->base ?? $client->domain->domain_uri;
         $charset = $page->charset;
         $desc = $page->desc;
-        $color = $site_data->color->pry;
+        $color = $app->color['pry'];
         $route = $client->domain->route;
         $route_array = json_encode($client->domain->route_as_array);
-        $canonical = <<<LINK
-            <link rel="canonical" href="$page->canonical" />
-        LINK;
+        $canonical = '<link rel="canonical" href="' . $page->canonical . '" />';
         $html_attr = $meta->{self::key_html_attr};
         $body_attr = $meta->{self::key_body_attr};
         $iframe_embed_blocker = <<<FRAME
@@ -217,7 +213,7 @@ final class ViewEngine {
             <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
             
             <!-- Framework Tags-->
-            <meta property="lay:site_name_short" id="LAY-SITE-NAME-SHORT" content="{$site_data->name->short}">
+            <meta property="lay:site_name_short" id="LAY-SITE-NAME-SHORT" content="{$app->name['short']}">
             <meta property="lay:url" id="LAY-PAGE-URL" content="$page->route">
             <meta property="lay:domain" id="LAY-DOMAIN-NAME" content="{$client->domain->domain_name}">
             <meta property="lay:domain_id" id="LAY-DOMAIN-ID" content="{$client->domain->domain_id}">
@@ -242,12 +238,12 @@ final class ViewEngine {
             <meta property="og:title" id="LAY-PAGE-TITLE" content="$title_raw">
             <meta property="og:description" content="$desc">
             <meta property="og:image" content="$img">
-            <meta property="og:site_name" id="LAY-SITE-NAME" content="{$site_data->name->full}">
+            <meta property="og:site_name" id="LAY-SITE-NAME" content="{$app->name['long']}">
             <!-- // Facebook Tags -->
             
             <!--Twitter Tags -->
             <meta name="twitter:card" content="summary_large_image">
-            <meta name="twitter:site" content="{$site_data->name->full}">
+            <meta name="twitter:site" content="{$app->name['long']}">
             <meta name="twitter:title" content="$title_raw">
             <meta name="twitter:description" content="$desc">
             <meta name="twitter:image" content="$img">
@@ -274,14 +270,16 @@ final class ViewEngine {
         </body></html>
         STR;
 
-        if($layConfig::$ENV_IS_PROD && $layConfig::is_page_compressed()) {
+        LayFn::if_prod(function ()  use (&$page) {
+            if(!LayFn::env('COMPRESS_HTML', true)) return;
+
             $page = str_replace(
                 ['@styletop', '@scripttop', '@style', '@script'],
                 ["@styletop ", "@scripttop ", "@style ", "@script "],
                 $page
             );
             $page = preg_replace("/>(\s)+</m", "><", preg_replace("/<!--(.|\s)*?-->/", "", $page));
-        }
+        });
 
         $x = "<!DOCTYPE html>\n" . $page;
 
@@ -355,11 +353,6 @@ final class ViewEngine {
         return ob_get_clean();
     }
 
-    /**
-     * @return string[][]
-     *
-     * @psalm-return array{style_top: list{0?: string,...}, script_top: list{0?: string,...}, style_dwn: list{0?: string,...}, script_dwn: list{0?: string,...}, html_content: list{0?: string,...}}
-     */
     public function parse_html_content(string $body): array
     {
         $sections = [
@@ -458,9 +451,6 @@ final class ViewEngine {
         }
     }
 
-    /**
-     * @return false|null|string
-     */
     private function insert_view(?string $file, string $type, string $ext, bool $as_string) : string|false|null
     {
         $domain = DomainResource::get()->domain;
@@ -585,7 +575,6 @@ final class ViewEngine {
 
     private function core_script() : void {
         $meta = self::$meta_data;
-        $layConfig = LayConfig::new();
         $js_template = fn ($src, $attr = []): string => $this->script_tag_template($src, $attr);
         $core_script = "";
 
@@ -601,7 +590,7 @@ final class ViewEngine {
 
         list($omj, $const) = null;
 
-        if ($layConfig::$ENV_IS_PROD) {
+        if (App::is_prod()) {
             if (file_exists($lay_root . $s . 'index.min.js'))
                 $omj = $js_template($lay_base . 'index.min.js', ['defer' => false]);
 

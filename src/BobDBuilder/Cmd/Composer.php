@@ -4,7 +4,7 @@ namespace BrickLayer\Lay\BobDBuilder\Cmd;
 
 use BrickLayer\Lay\BobDBuilder\EnginePlug;
 use BrickLayer\Lay\BobDBuilder\Interface\CmdLayout;
-use BrickLayer\Lay\Core\LayConfig;
+use BrickLayer\Lay\Core\Server;
 use BrickLayer\Lay\Libs\LayDate;
 use BrickLayer\Lay\Libs\LayFn;
 
@@ -40,7 +40,7 @@ final class Composer implements CmdLayout
         $composer = LayFn::env("COMPOSER_BIN");
 
         if(!$composer) {
-            if (LayConfig::new()->get_os() == "WINDOWS")
+            if (Server::os() == "WINDOWS")
                 $composer = "composer";
             else {
                 $composer = trim(shell_exec("which composer"));

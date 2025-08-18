@@ -2,12 +2,12 @@
 declare(strict_types=1);
 namespace BrickLayer\Lay\Libs\Mail;
 
-use BrickLayer\Lay\Core\LayConfig;
+use BrickLayer\Lay\Core\App;
 use BrickLayer\Lay\Core\LayException;
+use BrickLayer\Lay\Core\Server;
 use BrickLayer\Lay\Libs\Dir\LayDir;
 use BrickLayer\Lay\Libs\LayDate;
 use BrickLayer\Lay\Libs\LayFn;
-use JetBrains\PhpStorm\ArrayShape;
 use JetBrains\PhpStorm\ExpectedValues;
 use PHPMailer\PHPMailer\Exception;
 use PHPMailer\PHPMailer\PHPMailer;
@@ -101,9 +101,9 @@ class Mailer {
     private function start_process() : array
     {
         if(!self::$credentials['host'])
-            LayConfig::set_smtp();
+            self::set_credentials();
 
-        $site_data = LayConfig::new()::site_data();
+        $app = App::new();
 
         self::$mail_link = new PHPMailer();
         $this->set_constant();
@@ -112,13 +112,16 @@ class Mailer {
         $name = $this->client['name'] ?? null;
 
         if((empty($email) || empty($name)) && $this->to_client)
-            LayException::throw_exception("Sending an email <b>to a client</b> with an empty `email`: [$email] or `name`: [$name] is not allowed!. If you wish to send to the server, use `->to_server()` method.", "EmptyRequiredField");
+            LayException::throw_exception(
+                "Sending an email <b>to a client</b> with an empty `email`: [$email] or `name`: [$name] is not allowed!. If you wish to send to the server, use `->to_server()` method.",
+                "EmptyRequiredField"
+            );
 
-        $this->server_from['email'] = $this->server_from['email'] ?? self::$credentials['default_sender_email'] ?? $site_data->mail->{0};
-        $this->server_from['name'] = $this->server_from['name'] ?? self::$credentials['default_sender_name'] ?? $site_data->name->short;
+        $this->server_from['email'] = $this->server_from['email'] ?? self::$credentials['default_sender_email'] ?? $app->mail[0];
+        $this->server_from['name'] = $this->server_from['name'] ?? self::$credentials['default_sender_name'] ?? $app->name['short'];
 
-        $this->server['email'] = $this->server['email'] ?? $site_data->mail->{0};
-        $this->server['name'] = $this->server['name'] ?? $site_data->name->short;
+        $this->server['email'] = $this->server['email'] ?? $app->mail[0];
+        $this->server['name'] = $this->server['name'] ?? $app->name['short'];
 
         if($this->to_client) {
             $recipient = [
@@ -195,7 +198,7 @@ class Mailer {
 
     final public static function set_log_file() : void
     {
-        $log = LayConfig::server_data()->temp . "emails" . DIRECTORY_SEPARATOR;
+        $log = Server::new()->temp . "emails" . DIRECTORY_SEPARATOR;
 
         LayDir::make($log, 0777, true);
 
@@ -233,15 +236,15 @@ class Mailer {
     final public static function set_credentials(?array $details = null) : array
     {
         $details ??= [
-            "host" => $_ENV['SMTP_HOST'] ?? 'localhost',
-            "port" => $_ENV['SMTP_PORT'] ?? 587,
-            "protocol" => $_ENV['SMTP_PROTOCOL'] ?? 'tls',
-            "username" => $_ENV['SMTP_USERNAME'],
-            "password" => $_ENV['SMTP_PASSWORD'],
-            "default_sender_name" => $_ENV['DEFAULT_SENDER_NAME'] ?? null,
-            "default_sender_email" => $_ENV['DEFAULT_SENDER_EMAIL'] ?? null,
-            "max_queue_items" => $_ENV['SMTP_MAX_QUEUE_ITEMS'] ?? 5,
-            "max_queue_retries" => $_ENV['SMTP_MAX_QUEUE_RETRIES'] ?? 3,
+            "host" => LayFn::env('SMTP_HOST', 'localhost'),
+            "port" => LayFn::env('SMTP_PORT', 587),
+            "protocol" => LayFn::env('SMTP_PROTOCOL', 'tls'),
+            "username" => LayFn::env('SMTP_USERNAME'),
+            "password" => LayFn::env('SMTP_PASSWORD'),
+            "default_sender_name" => LayFn::env('DEFAULT_SENDER_NAME'),
+            "default_sender_email" => LayFn::env('DEFAULT_SENDER_EMAIL'),
+            "max_queue_items" => LayFn::env('SMTP_MAX_QUEUE_ITEMS', 5),
+            "max_queue_retries" => LayFn::env('SMTP_MAX_QUEUE_RETRIES', 3),
         ];
 
         return self::$credentials = $details;
@@ -261,8 +264,8 @@ class Mailer {
             <html lang="en"><body>
                 <div style="background: $bg_color; color: $text_color; padding: 20px; min-height: 400px; max-width: 80%; margin: auto">
                     <div style="text-align: center; background: $bg_color; padding: 10px 5px">
-                        <img src="https://github.com/PHPBrickLayer/structure/raw/main/src/static/img/lay-logo-github.png" 
-                            alt="PhpBricklayer Logo" 
+                        <img src="https://github.com/pillardash/lay-core/raw/main/src/static/img/meta.png" 
+                            alt="Lay by PillarDash" 
                             style="max-width: 85%; padding: 10px 10px 0"
                         >
                     </div>
@@ -315,12 +318,26 @@ class Mailer {
         return $this;
     }
 
-    final public function bcc(#[ArrayShape(['email' => 'string','name' => 'string'])] array ...$bcc) : self {
+    /**
+     * @param array{
+     *     email: string,
+     *     name: string,
+     * } ...$bcc
+     * @return $this
+     */
+    final public function bcc(array ...$bcc) : self {
         $this->bcc = $bcc;
         return $this;
     }
 
-    final public function cc(#[ArrayShape(['email' => 'string','name' => 'string'])] array ...$cc) : self {
+    /**
+     * @param array{
+     *     email: string,
+     *     name: string,
+     * } ...$cc
+     * @return $this
+     */
+    final public function cc(array ...$cc) : self {
         $this->cc = $cc;
         return $this;
     }
@@ -429,7 +446,8 @@ class Mailer {
      *
      * @throws Exception
      */
-    final public function to_client(bool $queue = true, int $priority = 0) : bool|null {
+    final public function to_client(bool $queue = true, int $priority = 0) : bool|null
+    {
         $this->to_client = true;
 
         if(!$queue)
@@ -453,7 +471,7 @@ class Mailer {
      */
     final public function send_on_dev_env() : self
     {
-        if(LayConfig::$ENV_IS_DEV)
+        if(App::is_dev())
             $this->send_on_dev_env = true;
 
         return $this;
@@ -483,7 +501,7 @@ class Mailer {
 
             $send_on_dev = LayFn::env('SMTP_SEND_ON_DEV', $this->send_on_dev_env);
 
-            if(LayConfig::$ENV_IS_PROD || $send_on_dev) {
+            if(App::is_prod() || $send_on_dev) {
                 $send = self::$mail_link->send();
                 $this->dump_log($send);
                 return $send;
@@ -491,7 +509,7 @@ class Mailer {
 
             return true;
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             LayException::throw_exception(
                 "Recipient: " . $recipient['to'],
                 "MailerError",
@@ -520,7 +538,8 @@ class Mailer {
      *
      * @throws Exception
      */
-    final public function queue(#[ExpectedValues([0,1,2,3,4,5])] int $priority = 0) : bool {
+    final public function queue(#[ExpectedValues([0,1,2,3,4,5])] int $priority = 0) : bool
+    {
         if($this->debug)
             $this->send();
 

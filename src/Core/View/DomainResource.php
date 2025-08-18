@@ -3,10 +3,12 @@
 namespace BrickLayer\Lay\Core\View;
 
 use BrickLayer\Lay\Core\Api\ApiHooks;
+use BrickLayer\Lay\Core\App;
 use BrickLayer\Lay\Core\Exception;
-use BrickLayer\Lay\Core\LayConfig;
+use BrickLayer\Lay\Core\Server;
 use BrickLayer\Lay\Core\View\Enums\DomainType;
 use BrickLayer\Lay\Libs\LayArray;
+use BrickLayer\Lay\Libs\LayFn;
 
 abstract  class DomainResource
 {
@@ -22,12 +24,11 @@ abstract  class DomainResource
 
     public static function init() : void
     {
-        $data = LayConfig::site_data();
         $obj = new \stdClass();
 
         $domain = self::domain();
         $base = $domain->domain_base;
-        $env_src = $data->use_prod && LayConfig::$ENV_IS_PROD ? 'prod' : 'dev';
+        $env_src = (LayFn::env('COMPRESS_ASSETS', true) && App::is_prod()) ? 'prod' : 'dev';
 
         $obj->root =       $base;
         $obj->upload =     $base . "uploads/";
@@ -192,24 +193,25 @@ abstract  class DomainResource
      * @param string $file path to file
      * @param string $type use predefined file path [plaster, layout, project, etc.]. Check code for more info
      * @param array{
-     *     local: array,
-     *     once: bool,
-     *     as_string: bool,
-     *     use_referring_domain: bool,
-     *     use_get_content: bool,
-     *     error_file_not_found: bool,
-     *     get_last_mod: bool,
-     *     local_as_object: bool,
+     *     local?: array,
+     *     once?: bool,
+     *     as_string?: bool,
+     *     use_referring_domain?: bool,
+     *     use_get_content?: bool,
+     *     error_file_not_found?: bool,
+     *     get_last_mod?: bool,
+     *     local_as_object?: bool,
      * } $option
      *
      * @throws \Exception
      *
-     * @return array{last_mod: false|int, content: false|string}|false|null|string
+     * @return array{
+     *     last_mod: false|int,
+     *     content: false|string
+     * }|false|null|string
      */
     public static function include_file(string $file, string $type = "inc", array $option = []) : array|string|false|null
     {
-        LayConfig::is_init();
-
         $domain = self::get()->domain;
         $going_online = false;
 
@@ -251,7 +253,7 @@ abstract  class DomainResource
                 break;
             case "project":
                 $type = "";
-                $type_root = LayConfig::server_data()->root;
+                $type_root = Server::new()->root;
                 break;
             case "layout":
                 $type = "";

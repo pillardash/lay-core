@@ -5,8 +5,8 @@ namespace BrickLayer\Lay\Core\View;
 
 use BrickLayer\Lay\Core\Annotate\CurrentRouteData;
 use BrickLayer\Lay\Core\Api\Enums\ApiStatus;
-use BrickLayer\Lay\Core\LayConfig;
 use BrickLayer\Lay\Core\LayException;
+use BrickLayer\Lay\Core\Startup;
 use BrickLayer\Lay\Core\View\Enums\DomainType;
 use BrickLayer\Lay\Core\View\Tags\Anchor;
 use BrickLayer\Lay\Libs\LayArray;
@@ -43,7 +43,7 @@ class ViewBuilder
 
     public function connect_db(): self
     {
-        LayConfig::connect();
+        Startup::new()->connect_db();
         return $this;
     }
 
@@ -53,7 +53,14 @@ class ViewBuilder
 
         if (!self::$href_set) {
             self::$href_set = true;
-            $this->local("href", fn(?string $href = "", ?string $domain_id = null, ?bool $use_subdomain = null) => Anchor::new()->href($href, $domain_id, $use_subdomain)->get_href());
+
+            $this->local(
+                "href", fn(
+                    ?string $href = "",
+                    ?string $domain_id = null,
+                    ?bool $use_subdomain = null,
+                ) => Anchor::new()->href($href, $domain_id, $use_subdomain)->get_href()
+            );
         }
 
         return $this;

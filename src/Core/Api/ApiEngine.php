@@ -4,8 +4,8 @@ namespace BrickLayer\Lay\Core\Api;
 
 use BrickLayer\Lay\Core\Api\Enums\ApiReturnType;
 use BrickLayer\Lay\Core\Api\Enums\ApiStatus;
+use BrickLayer\Lay\Core\App;
 use BrickLayer\Lay\Core\CoreException;
-use BrickLayer\Lay\Core\LayConfig;
 use BrickLayer\Lay\Core\View\Domain;
 use BrickLayer\Lay\Core\View\DomainResource;
 use BrickLayer\Lay\Libs\ID\Gen;
@@ -19,11 +19,6 @@ use BrickLayer\Lay\Core\Api\Enums\ApiRequestMethod;
 use BrickLayer\Lay\Core\Exception;
 use JetBrains\PhpStorm\ArrayShape;
 
-//TODO: Cache api list. Find a way to cache the entire api list of the application,
-// so that on production, it doesn't have to loop on every request.
-// Developer should be able to create a cache for a particular domain, so the framework
-// doesn't have to loop through the entire api list to get maybe two apis for a particular domain
-// Cache could be a physical file created called api list or something of sorts, but something not so large though.
 abstract class ApiEngine {
     private static self $engine;
     private static bool $ALL_DEBUG_OVERRIDE = false;
@@ -682,7 +677,7 @@ abstract class ApiEngine {
 
     public function limit(int $requests, string $interval, ?string $key = null, string $__INTERNAL_TYPE__ = "ROUTE") : self
     {
-        if(LayConfig::$ENV_IS_DEV || !self::$DEBUG_DUMP_MODE && (!self::$route_found || self::$request_complete || self::$using_route_rate_limiter))
+        if(App::is_dev() || !self::$DEBUG_DUMP_MODE && (!self::$route_found || self::$request_complete || self::$using_route_rate_limiter))
             return $this;
 
         if($__INTERNAL_TYPE__ == "ROUTE")
@@ -695,7 +690,7 @@ abstract class ApiEngine {
 
         $cache = LayCache::new()->cache_file(self::RATE_LIMIT_CACHE_FILE . DomainResource::get()->domain->domain_referrer . ".json");
 
-        $key = $key ?? LayConfig::get_ip();
+        $key = $key ?? App::get_ip();
         $key = Escape::clean(
             $key . (self::$route_uri_name ?? self::$route_uri_raw),
             EscapeType::P_URL, [
@@ -942,9 +937,37 @@ abstract class ApiEngine {
     /**
      * This object is used in debug mode to store routes in a predictable data object
      *
-     * @return (((bool|mixed|null)[]|bool)[]|ApiReturnType|string)[]
      *
-     * @psalm-return array{route: string, route_name: string, method: string, return_type: ApiReturnType, using_middleware: array{route: bool, group: bool}, rate_limiter: array{route: array{used: bool, reqs: mixed|null, duration: mixed|null, key: mixed|null}, group: array{used: bool, reqs: mixed|null, duration: mixed|null, key: mixed|null}, global: array{used: bool, reqs: mixed|null, duration: mixed|null, key: mixed|null}}}
+     * @return array{
+     *     route: string,
+     *     route_name: string,
+     *     method: string,
+     *     return_type: ApiReturnType,
+     *     using_middleware: array{
+     *          route: bool,
+     *          group: bool
+     *      },
+     *     rate_limiter: array{
+     *          route: array{
+     *              used: bool,
+     *              reqs: mixed|null,
+     *              duration: mixed|null,
+     *              key: mixed|null
+     *          },
+     *          group: array{
+     *              used: bool,
+     *              reqs: mixed|null,
+     *              duration: mixed|null,
+     *              key: mixed|null
+     *          },
+     *          global: array{
+     *              used: bool,
+     *              reqs: mixed|null,
+     *              duration: mixed|null,
+     *              key: mixed|null
+     *          }
+     *      }
+     *  }
      */
     private static function matched_uri_obj() : array
     {
@@ -1075,7 +1098,7 @@ abstract class ApiEngine {
      */
     public function get_registered_uris() : array
     {
-        if(LayConfig::$ENV_IS_PROD && !self::$DEBUG_MODE)
+        if(App::is_prod() && !self::$DEBUG_MODE)
             self::exception(
                 "WrongModeAccess",
                 "You cannot get registered uris in production mode.\n<br>"
@@ -1277,7 +1300,7 @@ abstract class ApiEngine {
 
         self::$route_found = false;
         self::$request_complete = false;
-        self::$request_header = LayConfig::get_header("*");
+        self::$request_header = App::get_header("*");
         self::$route_uri_raw = $endpoint;
         self::$route_uri = $req['route_as_array'];
         self::$fetched = true;
@@ -1307,7 +1330,7 @@ abstract class ApiEngine {
         $uris = "";
         $method = self::$active_request_method ?? self::$request_header['Access-Control-Request-Method'] ?? "GET";
         $mode = self::$DEBUG_MODE ? "true" : "false";
-        $send_json_error = !isset(LayConfig::user_agent()['browser']);
+        $send_json_error = !isset(App::user_agent()['browser']);
         $json_error = [];
 
         foreach(self::$registered_uris as $reg_uri) {

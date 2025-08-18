@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 namespace BrickLayer\Lay\Libs\Primitives\Traits;
 
-use BrickLayer\Lay\Core\LayConfig;
+use BrickLayer\Lay\Core\Server;
 use BrickLayer\Lay\Libs\Cron\CronController;
 use BrickLayer\Lay\Libs\LayDate;
 use BrickLayer\Lay\Orm\SQL;
@@ -17,7 +17,7 @@ trait TableTrait
 
     final protected static function create_table() : void
     {
-        $project_identity = LayConfig::get_project_identity();
+        $project_identity = Server::new()->project_id();
         $table_exist = $_SESSION[self::$SESSION_KEY][self::$created_table_name]['table_exists'] ?? null;
 
         if($table_exist and $table_exist == $project_identity)
