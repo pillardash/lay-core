@@ -298,7 +298,7 @@ final class Startup {
         $web = "";
 
         if(!$options['using_domain']) {
-            $web = $options['using_web'] ? "" : "/web/";
+            $web = $options['using_web'] ? "" : "web/";
             $options['use_domain_file'] = true;
         }
 
