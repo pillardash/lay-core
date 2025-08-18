@@ -6,6 +6,8 @@ namespace BrickLayer\Lay\Core\Traits;
 use BrickLayer\Lay\__InternalOnly\CacheInitOptions;
 use BrickLayer\Lay\Core\Enums\LayMode;
 use BrickLayer\Lay\Core\Enums\LayServerType;
+use BrickLayer\Lay\Core\Resources\Server;
+use BrickLayer\Lay\Core\Resources\Web;
 use stdClass;
 
 trait Init {
@@ -19,8 +21,6 @@ trait Init {
     private static bool $MOCKED = false;
     private static bool $MOCK_HTTPS = false;
     private static bool $FIRST_CLASS_CITI_ACTIVE = false;
-
-    protected static string $dir;
 
     public static bool $ENV_IS_PROD = true;
     public static bool $ENV_IS_DEV = false;
@@ -59,34 +59,21 @@ trait Init {
         $options['domain_no_proto_no_www'] = self::$base_no_proto_no_www . ($web ? "/$web" : "");
     }
 
-    private static function set_dir() : void {
-        $s = DIRECTORY_SEPARATOR;
-
-        self::$dir = explode
-            (
-                "{$s}vendor{$s}bricklayer{$s}structure",
-                __DIR__ . $s
-            )[0] . $s;
-    }
-
     private static function first_class_citizens() : void {
         self::$FIRST_CLASS_CITI_ACTIVE = true;
-        self::set_dir();
 
-        // Don't bother running any process if document root is not set.
-        // This means the framework is being accessed from the cli,
-        // we don't want to run unnecessary compute and waste resources.
         if(empty($_SERVER['DOCUMENT_ROOT']))
             self::$LAY_MODE = LayMode::CLI;
 
         $slash          = DIRECTORY_SEPARATOR;
-        $base           = str_replace("/", $slash, $_SERVER['DOCUMENT_ROOT']);
+        $base           = $_SERVER['DOCUMENT_ROOT'];
 
+        $dir = Server::new()->root;
         $pin = $base;
-        $string = self::$dir;
+        $string = $dir;
 
         if(strlen($pin) > strlen($string)) {
-            $pin = self::$dir;
+            $pin = $dir;
             $string = $base;
         }
 
@@ -131,8 +118,7 @@ trait Init {
         self::$ENV_IS_DEV = !self::$ENV_IS_PROD;
 
         self::set_web_root($options);
-
-        self::set_internal_site_data($options);
+        Web::__up__($options);
     }
 
     private static function initialize() : self {
@@ -162,7 +148,6 @@ trait Init {
             "name" => [
                 "short" => $options['meta']['name']['short'] ?? "Lay - Lite PHP Framework",
                 "long" => $options['meta']['name']['full'] ?? "Lay - Lite PHP Framework | Simple, Light, Quick",
-                "full" => $options['meta']['name']['full'] ?? "Lay - Lite PHP Framework | Simple, Light, Quick",
             ],
             "author" => $options['meta']['author'] ?? "Lay - Lite PHP Framework",
             "copy" => $options['meta']['copy'] ?? "Copyright &copy; Lay - Lite PHP Framework " . date("Y") . ", All Rights Reserved",
@@ -178,16 +163,11 @@ trait Init {
 
         self::$COMPRESS_HTML = $options['compress_html'];
 
-        self::$server   = new stdClass();
-
-        $options['mail'][0] = $options['mail'][0] ?? "info@" . self::$base_no_proto;
-
         self::$INITIALIZED = true;
 
         self::set_web_root($options);
-        self::set_internal_site_data($options);
-        self::set_internal_res_server(self::$dir);
-        self::load_env();
+        Web::__re_up__($options);
+        Server::new()->load_env();
 
         if(isset($_ENV['APP_ENV'])) {
             $env = strtolower($_ENV['APP_ENV']);

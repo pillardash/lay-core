@@ -2,8 +2,8 @@
 
 namespace BrickLayer\Lay\Libs\Primitives\Traits;
 
-use BrickLayer\Lay\Core\LayConfig;
 use BrickLayer\Lay\Core\LayException;
+use BrickLayer\Lay\Core\Server;
 use BrickLayer\Lay\Libs\Captcha\Captcha;
 use BrickLayer\Lay\Libs\FileUpload\Enums\FileUploadErrors;
 use BrickLayer\Lay\Libs\FileUpload\Enums\FileUploadExtension;
@@ -270,7 +270,7 @@ trait ValidateCleanMap {
             );
         }
 
-        $server = LayConfig::server_data();
+        $server = Server::new();
         $dir = $server->uploads_no_root . $upload_sub_dir;
         $root = $server->root . "web" . DIRECTORY_SEPARATOR;
 

@@ -3,8 +3,10 @@
 namespace BrickLayer\Lay\Libs\Deploy;
 
 use BrickLayer\Lay\Core\Api\ApiHooks;
-use BrickLayer\Lay\Core\LayConfig;
+use BrickLayer\Lay\Core\App;
 use BrickLayer\Lay\Core\LayException;
+use BrickLayer\Lay\Core\Server;
+use BrickLayer\Lay\Core\Startup;
 use BrickLayer\Lay\Libs\Cron\LayCron;
 use Closure;
 
@@ -24,7 +26,7 @@ class Action
     {
         $this->apex_api_class = new \Web\Api\Plaster();
 
-        $this->hook_file = LayConfig::server_data()->temp . "git_webhook.txt";
+        $this->hook_file = Server::new()->temp . "git_webhook.txt";
 
         file_put_contents($this->hook_file, "[" . date("Y-m-d H:i:s e") . "]\n");
     }
@@ -71,7 +73,7 @@ class Action
     public function cors(?array $origins = null, ?callable $headers = null) : self
     {
         if(
-            !LayConfig::set_cors(
+            !Startup::cors(
                 allowed_origins: $origins ?? [ "https://github.com" ],
                 fun: $headers ?? function () {
                     header("Access-Control-Allow-Credentials: true");
@@ -94,7 +96,7 @@ class Action
     {
         $method = $_SERVER['REQUEST_METHOD'] ?? '';
 
-        if(strtolower($method) !== 'post' || LayConfig::is_bot()) {
+        if(strtolower($method) !== 'post' || App::is_bot()) {
             if($this->log_ddos)
                 LayException::throw("Wrong mode of contact", "GitADMismatched");
 
@@ -156,7 +158,7 @@ class Action
 
         $log .= "\n";
         $log .= "-- Symlinks are being refreshed\n";
-        $bob = LayConfig::server_data()->root . "bob";
+        $bob = Server::new()->root . "bob";
         $log .= "-- Link Refresh: " . shell_exec("php $bob link:refresh 2>&1 &") . "\n";
 
 

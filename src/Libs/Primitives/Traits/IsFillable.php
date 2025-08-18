@@ -1,7 +1,7 @@
 <?php
 namespace BrickLayer\Lay\Libs\Primitives\Traits;
 
-use BrickLayer\Lay\Core\LayConfig;
+use BrickLayer\Lay\Core\App;
 use BrickLayer\Lay\Core\LayException;
 use BrickLayer\Lay\Libs\Primitives\Abstracts\BaseModelHelper;
 use BrickLayer\Lay\Libs\String\Enum\EscapeType;
@@ -78,7 +78,7 @@ trait IsFillable {
 
     public static function db() : SQL
     {
-        return LayConfig::get_orm()->open(static::$table);
+        return App::orm()->open(static::$table);
     }
 
     /**
@@ -223,7 +223,7 @@ trait IsFillable {
         return $this->columns[$key] ?? null;
     }
 
-    public final function __isset($key) : bool
+    public final function __isset(string $key) : bool
     {
         return isset($this->columns[$key]);
     }

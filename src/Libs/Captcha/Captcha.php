@@ -2,7 +2,7 @@
 
 namespace BrickLayer\Lay\Libs\Captcha;
 
-use BrickLayer\Lay\Core\LayConfig;
+use BrickLayer\Lay\Core\App;
 use BrickLayer\Lay\Libs\LayCrypt\LayCrypt;
 use BrickLayer\Lay\Libs\LayFn;
 use Imagick;
@@ -23,7 +23,7 @@ final class Captcha
 
     private static function set_captcha_secret() : void
     {
-        LayCrypt::set_jwt_secret(LayFn::env('CAPTCHA_SECRET', LayConfig::app_id() . '-LAY-CAPTCHA-SEC'));
+        LayCrypt::set_jwt_secret(LayFn::env('CAPTCHA_SECRET', App::id() . '-LAY-CAPTCHA-SEC'));
     }
 
     /**

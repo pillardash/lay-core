@@ -3,8 +3,8 @@ declare(strict_types=1);
 
 namespace BrickLayer\Lay\Libs\Primitives\Abstracts;
 
+use BrickLayer\Lay\Core\App;
 use BrickLayer\Lay\Core\Exception;
-use BrickLayer\Lay\Core\LayConfig;
 use BrickLayer\Lay\Core\LayException;
 use BrickLayer\Lay\Libs\Primitives\Traits\ValidateCleanMap;
 
@@ -199,7 +199,7 @@ abstract class RequestHelper
         $data = file_get_contents("php://input");
 
         if($req_method != "POST") {
-            $content_type = explode(";", LayConfig::get_header('Content-Type'))[0];
+            $content_type = explode(";", App::get_header('Content-Type'))[0];
 
             if($req_method == "PUT" && $content_type == "multipart/form-data")
                 Exception::throw_exception("PUT method is not allowed for multipart/form-data requests", "LayObject::ERR");

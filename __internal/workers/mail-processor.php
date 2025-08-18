@@ -1,7 +1,7 @@
 #!/usr/bin/env php
 <?php
 
-use BrickLayer\Lay\Core\LayConfig;
+use BrickLayer\Lay\Core\App;
 use BrickLayer\Lay\Core\LayException;
 use BrickLayer\Lay\Libs\LayFn;
 use BrickLayer\Lay\Libs\Mail\Mailer;
@@ -19,7 +19,7 @@ Mailer::write_to_log("[x] -- Starting a New Mailer Queue Session");
 Mailer::write_to_log("[x] -- Attempting to connect to DB");
 
 // Connect to the DB
-LayConfig::connect();
+App::connect();
 
 Mailer::write_to_log("[x] -- Connected successfully to DB");
 
@@ -140,4 +140,8 @@ Mailer::write_to_log("[x] -- Finished going through queue");
 
 $mailer->stop_on_finish();
 
-$mailer->delete_stale_mails(LayConfig::site_data()->delete_sent_mails);
+if(LayFn::env('DELETE_STALE_MAILS', true))
+    $mailer->delete_stale_mails(
+        LayFn::env('DELETE_SENT_MAILS', true),
+        LayFn::env('STALE_MAILS_TTL', 15)
+    );

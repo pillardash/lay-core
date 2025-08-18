@@ -2,8 +2,9 @@
 
 namespace BrickLayer\Lay\Libs\Cron;
 
+use BrickLayer\Lay\Core\App;
 use BrickLayer\Lay\Core\Exception;
-use BrickLayer\Lay\Core\LayConfig;
+use BrickLayer\Lay\Core\Server;
 use BrickLayer\Lay\Libs\LayArray;
 use BrickLayer\Lay\Libs\LayDate;
 use BrickLayer\Lay\Libs\LayFn;
@@ -19,7 +20,7 @@ final class LayCron
     ];
 
     private static string $PHP_BIN;
-    private static string $time_zone  = "Africa/Lagos";
+    private static string $time_zone;
     private string $output_file;
     private bool $just_once_set = false;
 
@@ -60,7 +61,7 @@ final class LayCron
      */
     public static function dump_crontab(bool $project_scope = true, bool $suppress_win_exception = false) : string|bool
     {
-        if(LayConfig::get_os() == "WINDOWS") {
+        if(Server::os() == "WINDOWS") {
             if($suppress_win_exception)
                 return false;
 
@@ -81,7 +82,7 @@ final class LayCron
 
     public static function dump_db_file() : ?array
     {
-        $dir = LayConfig::mk_tmp_dir();
+        $dir = Server::new()->make_temp_dir();
         $file = $dir . self::CRON_JOBS_JSON;
 
         if(!file_exists($file))
@@ -91,7 +92,7 @@ final class LayCron
     }
 
     private function cron_db() : string {
-        $dir = LayConfig::mk_tmp_dir();
+        $dir = Server::new()->make_temp_dir();
         $file = $dir . self::CRON_JOBS_JSON;
         $this->output_file = $dir . "cron_outputs.txt";
 
@@ -163,7 +164,7 @@ final class LayCron
     private function project_server_jobs(string $mailto, string $cron_jobs) : string
     {
         $all_jobs = "";
-        $app_id = LayConfig::app_id();
+        $app_id = App::id();
         $server_jobs = $this->get_crontab(false) ?? [];
 
         foreach ($server_jobs as $i => $job) {
@@ -227,7 +228,7 @@ final class LayCron
     private function make_job(string $job) : string {
         $this->db_data_init();
 
-        $server = LayConfig::server_data();
+        $server = Server::new();
 
         $schedule = $this->minute . " " . $this->hour . " " . $this->day_of_the_month . " " . $this->month . " " . $this->day_of_the_week;
 
@@ -249,7 +250,7 @@ final class LayCron
     }
 
     private function add_job(string $job) : void {
-        $job = rtrim($job, PHP_EOL) . " " . self::APP_ID_KEY . " " . LayConfig::app_id() . PHP_EOL;
+        $job = rtrim($job, PHP_EOL) . " " . self::APP_ID_KEY . " " . App::id() . PHP_EOL;
 
         $job_exists = $this->db_job_exists($job)['found'];
 
@@ -312,7 +313,7 @@ final class LayCron
     }
 
     public static function new () : self {
-        date_default_timezone_set(self::$time_zone);
+        date_default_timezone_set(self::$time_zone ?? LayFn::env('DEFAULT_TIMEZONE', 'Africa/Lagos'));
 
         return new self();
     }
@@ -394,11 +395,12 @@ final class LayCron
 
     /**
      * @param string|int $uid
-     * @param bool $add_schedule
      *
-     * @return null|string[]
-     *
-     * @psalm-return array{schedule: string, binary: string, script: string}|null
+     * @return array{
+     *     schedule: string,
+     *     binary: string,
+     *     script: string
+     * }|null
      */
     public function get_job(string|int $uid) : array|null {
         $job = $this->db_job_by_id($uid);
@@ -427,7 +429,7 @@ final class LayCron
 
         $out = [$jobs[0]];
 
-        $app_id = LayConfig::app_id();
+        $app_id = App::id();
 
         foreach ($jobs as $i => $job) {
             if($i == 0 && str_starts_with($job, "MAILTO"))
@@ -511,7 +513,7 @@ final class LayCron
      * Schedules jobs for every number of minutes indicated.
      * @param int $minute
      * @return $this
-     *@see schedule
+     * @see schedule
      * @example `5` minutes = every `5` minutes. i.e 5, 10, 15...n
      */
     public function every_minute(int $minute = 1) : self {
@@ -523,7 +525,7 @@ final class LayCron
      * Schedules jobs for every number of hours indicated.
      * @param int $hour
      * @return $this
-     *@see schedule
+     * @see schedule
      * @example `2` hour = every `2` hours. i.e 2, 4, 6, 8...n
      */
     public function every_hour(int $hour = 1) : self {
@@ -570,7 +572,7 @@ final class LayCron
      * it could be an int, a range or comma-separated values.
      * @return $this
      * @throws \Exception
-     *@see schedule
+     * @see schedule
      */
     public function monthly(string|int $days_of_the_month = 1) : self {
         if(!is_int($days_of_the_month)) {
@@ -594,7 +596,7 @@ final class LayCron
      * @param string $months accepts: Jan, jan, January
      * it could be a range or comma-separated values.
      * @return $this
-     *@see schedule
+     * @see schedule
      */
     public function yearly(string $months) : self {
         $this->schedule(month: $this->handle_ranges_and_more($months, "n"));

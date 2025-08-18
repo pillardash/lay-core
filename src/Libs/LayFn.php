@@ -3,8 +3,9 @@
 namespace BrickLayer\Lay\Libs;
 
 use BrickLayer\Lay\Core\Api\Enums\ApiStatus;
-use BrickLayer\Lay\Core\LayConfig;
+use BrickLayer\Lay\Core\App;
 use BrickLayer\Lay\Core\LayException;
+use BrickLayer\Lay\Core\Startup;
 use BrickLayer\Lay\Core\View\Domain;
 use JetBrains\PhpStorm\NoReturn;
 
@@ -15,7 +16,7 @@ final class LayFn
 
     public static function var_cache(string $key, callable $action, bool $invalidate = false, string $expires = "1 day") : mixed
     {
-        if(LayConfig::$ENV_IS_DEV)
+        if(App::is_dev())
             $invalidate = true;
 
         $cache = LayCache::new()->cache_file("LAY_VAR_CACHE/$key.json");
@@ -33,18 +34,6 @@ final class LayFn
         $cache->store("expires", LayDate::unix($expires));
 
         return $data;
-    }
-
-    public static function get_var_cache(string $key, bool $throw_error = false) : mixed
-    {
-        $cache = LayCache::new()->cache_file("LAY_VAR_CACHE/$key.json");
-
-        if($old = $cache->read("store")) return $old;
-
-        if($throw_error)
-            LayException::throw("Trying to access a key [$key] that doesn't exits in VAR_CACHE", "OutOfBoundVarCache");
-
-        return null;
     }
 
     public static function num_format(?int $num, int $digits = 0, string $decimal_separator = ".", string $thousands_separator = ",") : string
@@ -79,15 +68,12 @@ final class LayFn
 
     public static function trim_word(string $string, string $word, ?string $preg_pattern = null) : string
     {
-        $len = /**
-         * @psalm-return int<0, max>
-         */
-            function ($str): int {
-                if (function_exists("mb_strlen"))
-                    return mb_strlen($str);
+        $len = function ($str): int {
+            if (function_exists("mb_strlen"))
+                return mb_strlen($str);
 
-                return strlen($str);
-            };
+            return strlen($str);
+        };
 
         if($len($word) < 2)
             return trim($string, $word);
@@ -138,7 +124,7 @@ final class LayFn
         Domain::set_entries_from_file();
 
         self::header("Content-Type: text/html");
-        LayConfig::call_lazy_cors();
+        Startup::call_lazy_cors(true);
 
         $message['dump'] = $value;
         $message['trace'] = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 2);
@@ -250,5 +236,13 @@ final class LayFn
             $_ENV[$key] = filter_var($_ENV[$key], FILTER_VALIDATE_INT);
 
         return $_ENV[$key];
+    }
+
+    public static function if_prod(callable $action) : mixed
+    {
+        if(App::is_prod())
+            return $action();
+
+        return null;
     }
 }

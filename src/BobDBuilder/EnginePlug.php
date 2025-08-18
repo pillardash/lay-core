@@ -8,8 +8,9 @@ use BrickLayer\Lay\BobDBuilder\Helper\Console\Format\Background;
 use BrickLayer\Lay\BobDBuilder\Helper\Console\Format\Foreground;
 use BrickLayer\Lay\BobDBuilder\Helper\Console\Format\Style;
 use BrickLayer\Lay\BobDBuilder\Interface\CmdLayout;
+use BrickLayer\Lay\Core\App;
 use BrickLayer\Lay\Core\Exception;
-use BrickLayer\Lay\Core\LayConfig;
+use BrickLayer\Lay\Core\Server;
 use BrickLayer\Lay\Libs\Dir\LayDir;
 use BrickLayer\Lay\Libs\Primitives\Enums\LayLoop;
 use DirectoryIterator;
@@ -48,7 +49,7 @@ final class EnginePlug
         bool $load_cmd = true
     )
     {
-        $this->server = LayConfig::server_data();
+        $this->server = Server::new();
         $this->s = DIRECTORY_SEPARATOR;
         $this->project_mode = file_exists($this->server->root . "foundation.php");
 
@@ -60,7 +61,8 @@ final class EnginePlug
     {
         $spun_correct_class = false;
 
-        LayConfig::$ENV_IS_DEV = true;
+        App::change_env(true);
+
         Exception::new()->capture_errors(true);
 
         // This property is active when the command sent matches any on the existing Cmd classes

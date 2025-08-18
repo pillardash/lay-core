@@ -3,7 +3,7 @@
 namespace BrickLayer\Lay\Libs\String;
 
 use BrickLayer\Lay\Core\Exception;
-use BrickLayer\Lay\Core\LayConfig;
+use BrickLayer\Lay\Core\Server;
 use BrickLayer\Lay\Libs\String\Enum\EscapeType;
 use WeakMap;
 
@@ -46,7 +46,6 @@ final class Escape
         $reset_esc_string = $options['reset_esc_string'] ?? true;
         $debug = $options['debug'] ?? false;
         $strict = $options['strict'] ?? false;
-        $connect_db = $options['connect_db'] ?? true;
         $p_url_replace = $options['p_url_replace'] ?? "-";
 
         // this condition is meant for the $find variable when handling urls
@@ -107,7 +106,7 @@ final class Escape
             return $value;
 
         $map = new WeakMap();
-        $map[EscapeType::P_ESCAPE] = fn($val = null): string => LayConfig::get_orm($connect_db)->escape_string((string) $val ?? $value);
+        $map[EscapeType::P_ESCAPE] = fn($val = null): string => Server::orm()->escape_string((string) $val ?? $value);
         $map[EscapeType::P_STRIP] = fn($val = null): string => strip_tags((string)($val ?? $value), $allowedTags);
         $map[EscapeType::P_TRIM] = fn($val = null): string => trim($val ?? $value);
         $map[EscapeType::P_SPEC_CHAR] = fn($val = null): string => htmlspecialchars($val ?? $value, $flags, $encoding, $double_encode);

@@ -4,6 +4,7 @@ namespace BrickLayer\Lay\Libs\Image;
 
 use BrickLayer\Lay\Core\Exception;
 use BrickLayer\Lay\Core\LayConfig;
+use BrickLayer\Lay\Core\Resources\Server;
 use BrickLayer\Lay\Libs\Dir\LayDir;
 use BrickLayer\Lay\Libs\FileUpload\Enums\FileUploadErrors;
 use BrickLayer\Lay\Libs\FileUpload\FileUpload;
@@ -185,9 +186,7 @@ final class ImageLib {
             $quality,
             $add_mod_time,
         ): array{
-            $lay = LayConfig::new();
-
-            $tmpFolder = $lay::mk_tmp_dir();
+            $tmpFolder = Server::new()->make_temp_dir();
 
             $tmpImg = $tmpFolder . "temp-file";
             $directory = $directory . DIRECTORY_SEPARATOR . Escape::clean($new_name,EscapeType::P_URL);

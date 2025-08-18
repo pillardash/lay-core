@@ -3,8 +3,8 @@ declare(strict_types=1);
 
 namespace BrickLayer\Lay\Libs\FileUpload\Traits;
 
-use BrickLayer\Lay\Core\LayConfig;
 use BrickLayer\Lay\Core\LayException;
+use BrickLayer\Lay\Core\Server;
 use BrickLayer\Lay\Libs\Aws\Bucket;
 use BrickLayer\Lay\Libs\Dir\LayDir;
 use BrickLayer\Lay\Libs\FileUpload\Enums\FileUploadErrors;
@@ -117,7 +117,7 @@ trait Image
                 "name" => $name_only,
                 "ext" => $ext,
                 "url" => $filename,
-                "path" => str_replace(LayConfig::server_data()->root, "", $new_img),
+                "path" => str_replace(Server::new()->root, "", $new_img),
                 "mime_type" => $mime_type,
                 "size" => $this->file_size($new_img),
                 "width" => $ratio['width'],
@@ -159,13 +159,13 @@ trait Image
             return $this->upload_response(
                 false,
                 [
-                    'dev_error' => "For image upload to work, imagick Library needs to be installed. Use `sudo apt install php-gd` in linux, `pecl install gd` in mac, or enable the extension in your `php.ini` on windows",
+                    'dev_error' => "For image upload to work, imagick Library needs to be installe or enable the extension in your `php.ini` on windows",
                     'error' => "Could not complete upload process, an error occurred",
                     'error_type' => FileUploadErrors::LIB_IMAGICK_NOT_FOUND,
                 ]
             );
 
-        $tmpImg = LayConfig::mk_tmp_dir() . "temp-file-" . Gen::uuid(32);
+        $tmpImg = Server::new()->make_temp_dir() . "temp-file-" . Gen::uuid(32);
 
         if($copy_tmp_file && !copy($tmp_file, $tmpImg))
             return $this->upload_response(

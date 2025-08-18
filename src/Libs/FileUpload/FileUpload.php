@@ -2,8 +2,8 @@
 declare(strict_types=1);
 namespace BrickLayer\Lay\Libs\FileUpload;
 
+use BrickLayer\Lay\Core\App;
 use BrickLayer\Lay\Core\Exception;
-use BrickLayer\Lay\Core\LayConfig;
 use BrickLayer\Lay\Libs\FileUpload\Enums\FileUploadErrors;
 use BrickLayer\Lay\Libs\FileUpload\Enums\FileUploadExtension;
 use BrickLayer\Lay\Libs\FileUpload\Enums\FileUploadStorage;
@@ -143,7 +143,7 @@ final class FileUpload {
         $upload_on_dev = $opts['upload_on_dev'] ?? false;
         $storage = $opts['storage'] ?? null;
 
-        if(LayConfig::$ENV_IS_DEV && !$upload_on_dev)
+        if(App::is_dev() && !$upload_on_dev)
             $storage = FileUploadStorage::DISK;
 
         $this->storage = $storage;

@@ -3,7 +3,8 @@ declare(strict_types=1);
 
 namespace BrickLayer\Lay\Libs;
 
-use BrickLayer\Lay\Core\LayConfig;
+use BrickLayer\Lay\Core\App;
+use BrickLayer\Lay\Core\Server;
 use BrickLayer\Lay\Libs\LayCrypt\LayCrypt;
 use BrickLayer\Lay\Libs\Primitives\Traits\TableTrait;
 use BrickLayer\Lay\Orm\SQL;
@@ -26,7 +27,7 @@ final class LayCookieStorage
 
     protected static function init(string $table): void
     {
-        $project_id = LayConfig::get_project_identity();
+        $project_id = Server::new()->project_id();
 
         self::$SESSION_KEY = "LAY_COOKIE__" . $project_id;
 
@@ -70,7 +71,7 @@ final class LayCookieStorage
         $same_site = $options['samesite'] ?? "Lax";
         $secure = $options['secure'] ?? null;
 
-        if (LayConfig::$ENV_IS_DEV)
+        if (App::is_dev())
             $secure = $secure ?? false;
 
         $name = str_replace(["=", ",", ";", " ", "\t", "\r", "\n", "\013", "\014"], "", $name);
@@ -200,7 +201,7 @@ final class LayCookieStorage
 
     public static function browser_info(): string
     {
-        return LayConfig::get_os() . " " . LayConfig::get_header("User-Agent") . " IP: " . LayConfig::get_ip();
+        return Server::os() . " " . App::get_header("User-Agent") . " IP: " . App::get_ip();
     }
 
     public static function clear_from_db(): void
