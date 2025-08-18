@@ -207,7 +207,9 @@ final class Domain {
         self::$current_route_details['domain_id'] = $id;
         self::$current_route_details['domain_uri'] = str_replace("/web/", "/", $data->domain) . $uri;
         self::$current_route_details['domain_base'] = $data->domain . $domain_base;
+
         self::$current_route_details['domain_root'] = Server::new()->root . $domain_root;
+        self::$current_route_details['public'] = self::$current_route_details['domain_root'] . "public" . DIRECTORY_SEPARATOR;
         self::$current_route_details['plaster'] = self::$current_route_details['domain_root'] . "plaster" . DIRECTORY_SEPARATOR;
         self::$current_route_details['layout'] = self::$current_route_details['domain_root'] . "layout" . DIRECTORY_SEPARATOR;
 

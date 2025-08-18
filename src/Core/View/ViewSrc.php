@@ -1,5 +1,7 @@
 <?php
+
 declare(strict_types=1);
+
 namespace BrickLayer\Lay\Core\View;
 
 final class ViewSrc {
@@ -24,7 +26,7 @@ final class ViewSrc {
             return $base . $src;
         }
 
-        $local_file = str_replace($base, $client->domain->domain_root, $src);
+        $local_file = str_replace($base, $client->domain->public, $src);
 
         $src .= "?mt=" . @filemtime($local_file);
 

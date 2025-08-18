@@ -134,6 +134,7 @@ abstract  class DomainResource
      *      pattern: string,
      *      plaster: string,
      *      layout: string,
+     *      public: string,
      *      int<0, max>
      *     }
      * }
