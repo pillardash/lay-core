@@ -27,7 +27,7 @@ trait Domain
                 "Pattern cannot be an empty quote or '*' or 'api'\n"
                 . "\n"
                 . "See pattern examples below:\n"
-                . "Example: 'blog-posts,blog'\n"
+                . "Example: 'blog'\n"
                 . "Example: 'case-study'\n"
                 . "Example: docs\n"
             );
@@ -83,15 +83,14 @@ trait Domain
         $this->domain_default_files($domain, $domain_id, $domain_dir);
 
         if($domain != 'Api') {
-            $this->talk("- Linking .htaccess *{$this->plug->server->web}*");
-            new BobExec("link:htaccess $domain --silent");
-
             $this->talk("- Linking shared directory *{$this->plug->server->shared}*");
             new BobExec("link:dir web{$this->plug->s}shared web{$this->plug->s}domains{$this->plug->s}$domain{$this->plug->s}public{$this->plug->s}shared --silent");
         }
 
         $this->talk("- Updating domains entry in *{$this->plug->server->web}index.php*");
         $this->update_general_domain_entry($domain, $domain_id, $pattern);
+
+        new BobExec("make:server_config --silent");
     }
 
     public function domain_default_files(string $domain_name, string $domain_id, string $domain_dir): void
@@ -175,7 +174,7 @@ trait Domain
         );
     }
 
-    public function update_general_domain_entry(string $domain, string $domain_id, string $patterns): void
+    public function update_general_domain_entry(string $domain, string $domain_id, string $pattern): void
     {
         $main_file = $this->plug->server->web . "index.php";
         $index_page = file_get_contents($main_file);
@@ -190,7 +189,8 @@ trait Domain
         Domain::new()->create(
             id: "default",
             builder: \Web\Default\Plaster::class,
-            patterns: ["*"],
+            pattern: "*",
+            type: DomainType::REGULAR,
         );
         DEF;
 
@@ -204,12 +204,7 @@ trait Domain
             );
 
             // Create the new domain patterns as specified from the terminal
-            $pattern = "";
-            foreach (explode(",", $patterns) as $p) {
-                $pattern .= '"' . strtolower(trim($p)) . '",';
-            }
 
-            $pattern = rtrim($pattern, ",");
             $old_pattern = null;
 
             if (!empty($data)) {
@@ -224,7 +219,8 @@ trait Domain
             Domain::new()->create(
                 id: "$domain_id",
                 builder: \Web\\$domain\\Plaster::class,
-                patterns: [$pattern],
+                pattern: $pattern,
+                type: DomainType::REGULAR,
             );
             
             CUR;
