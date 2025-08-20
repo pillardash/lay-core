@@ -258,9 +258,9 @@ final class EnginePlug
     }
 
     public function write_warn(string $message, array $opts = []) : void {
-        $opts['hide_current_cmd'] = $opts['hide_current_cmd'] ?? true;
-        $opts['close_talk'] = $opts['close_talk'] ?? true;
-        $opts['kill'] = !$this->catch_error;
+        $opts['hide_current_cmd'] ??= true;
+        $opts['close_talk'] ??= true;
+        $opts['kill'] ??= !$this->catch_error;
         $this->failed();
 
         $this->write($message, CmdOutType::WARN, $opts);
@@ -268,12 +268,14 @@ final class EnginePlug
 
     public function write(string $message, ?CmdOutType $type = null, array $opts = []): void
     {
+        if($opts['silent'] ?? $this->silent)
+            return;
+
         $kill = $opts['kill'] ?? false;
         $open_talk =  $opts['open_talk'] ?? false;
         $close_talk = $opts['close_talk'] ?? false;
         $current_cmd = $this->active_cmd ?: ($opts['current_cmd'] ?? "");
         $hide_cur_cmd = $opts['hide_current_cmd'] ?? false;
-        $silent = $opts['silent'] ?? $this->silent;
         $maintain_line = $opts['maintain_line'] ?? false;
         $process_duration = $opts['process_duration'] ?? null;
 
@@ -294,7 +296,7 @@ final class EnginePlug
                 "InvalidConsoleColor"
             );
 
-        if ($open_talk && !$silent) {
+        if ($open_talk) {
             Console::log("| :::::::::::::::::::: |", Foreground::light_gray);
             Console::log("| \\\\____ (^_^) ____//  |", Foreground::light_gray);
             Console::log("|         |||          |", Foreground::light_gray);
@@ -302,7 +304,7 @@ final class EnginePlug
             Console::log("| :::::::::::::::::::: |", Foreground::light_gray);
         }
 
-        if (!$hide_cur_cmd && !$silent && !empty($current_cmd)) {
+        if (!$hide_cur_cmd && !empty($current_cmd)) {
             print "   ";
             Console::log(
                 " $current_cmd ",
@@ -346,7 +348,7 @@ final class EnginePlug
             Console::log($m, $color, maintain_line: $maintain_line);
         }
 
-        if ($close_talk && !$silent) {
+        if ($close_talk) {
             if($this->operation_successful)
                 Console::log(":) Bob is Done (:", Foreground::light_gray);
             else
@@ -360,9 +362,7 @@ final class EnginePlug
         }
 
         if($kill && $this->die_on_error) {
-            if(!$silent)
-                Console::bell();
-
+            Console::bell();
             die;
         }
     }

@@ -5,7 +5,6 @@ namespace BrickLayer\Lay\BobDBuilder\Cmd;
 use BrickLayer\Lay\BobDBuilder\BobExec;
 use BrickLayer\Lay\BobDBuilder\Cmd\Traits\Symlink\Dir;
 use BrickLayer\Lay\BobDBuilder\Cmd\Traits\Symlink\File;
-use BrickLayer\Lay\BobDBuilder\Cmd\Traits\Symlink\Htaccess;
 use BrickLayer\Lay\BobDBuilder\Cmd\Traits\Symlink\Shared;
 use BrickLayer\Lay\BobDBuilder\Cmd\Traits\Symlink\Uploads;
 use BrickLayer\Lay\BobDBuilder\EnginePlug;
@@ -30,7 +29,6 @@ final class Symlink implements CmdLayout
     {
         $this->plug = $plug;
 
-        $plug->add_arg($this, ["link:htaccess"], 'link_htaccess', 0);
         $plug->add_arg($this, ["link:shared"], 'link_shared', 0);
         $plug->add_arg($this, ["link:uploads"], 'link_uploads', 0);
         $plug->add_arg($this, ["link:dir"], 'link_dir', 0, 1);
@@ -41,7 +39,6 @@ final class Symlink implements CmdLayout
     
     public function _spin(): void
     {
-        $this->htaccess();
         $this->uploads();
         $this->dir();
         $this->file();
@@ -81,7 +78,6 @@ final class Symlink implements CmdLayout
         $plug->write_success("Links removed successfully: *$symlinks*");
     }
 
-    use Htaccess;
     use Dir;
     use File;
     use Uploads;

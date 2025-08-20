@@ -94,6 +94,14 @@ final class Server
             $env_is_prod = false;
 
         self::$ENV_IS_DEV = !$env_is_prod;
+
+        // This prop was created and not documented so that when dev manually changes the env from their end,
+        // it doesn't affect the internal system that wants to know if the env is truly dev or prod.
+        // ## NOTE: This prop should not be used inside the application, as we may rotate the key, to discourage its usage
+        self::$data['truly_dev_env'] = false;
+
+        if(self::$ENV_IS_DEV)
+            self::$data['truly_dev_env'] = true;
     }
 
     public static function __is_cli(): bool

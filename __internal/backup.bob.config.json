@@ -13,5 +13,417 @@
         "pattern": []
       }
     }
+  },
+  "server_rules" : {
+    "regular": [
+      {
+        "type": "server_signature",
+        "value": "Off"
+      },
+      {
+        "type": "options",
+        "desc" : "Disable index, and enable symbolic links",
+        "flags": [
+          "-Indexes",
+          "+FollowSymLinks",
+          "-MultiViews"
+        ]
+      },
+      {
+        "type": "if_module",
+        "module": "mod_deflate.c",
+        "desc" : "Compress HTML, CSS, JavaScript, Text, XML and fonts",
+        "directives": [
+          {
+            "type": "add_output_filter_by_type",
+            "filter": "DEFLATE",
+            "mime_types": [
+              "image/svg+xml",
+              "application/javascript",
+              "application/rss+xml",
+              "application/vnd.ms-fontobject",
+              "application/x-font",
+              "application/x-font-opentype",
+              "application/x-font-otf",
+              "application/x-font-truetype",
+              "application/x-font-ttf",
+              "application/x-javascript",
+              "application/xhtml+xml",
+              "application/xml",
+              "font/opentype",
+              "font/otf",
+              "font/ttf",
+              "image/x-icon",
+              "text/css",
+              "text/html",
+              "text/javascript",
+              "text/plain",
+              "text/xml"
+            ]
+          }
+        ]
+      },
+      {
+        "type": "if_module",
+        "module": "mod_headers.c",
+        "directives": [
+          {
+            "type": "files_match",
+            "desc" : "Font Packages CORS Issues resolution",
+            "pattern": "\\.(ttf|ttc|otf|eot|woff|woff2|font.css|css)$",
+            "headers": {
+              "Access-Control-Allow-Origin": "*",
+              "Cache-Control": "max-age=31536000, public"
+            },
+            "unset": [
+              "Pragma"
+            ]
+          },
+          {
+            "type": "files_match",
+            "desc" : "Cache static assets for 1 year",
+            "pattern": "\\.(js|css|jpg|png|webp|jpeg)$",
+            "headers": {
+              "Cache-Control": "max-age=31536000, public"
+            },
+            "unset": [
+              "Pragma"
+            ]
+          },
+          {
+            "type": "header_unset",
+            "desc" : "Hide potential risky headers",
+            "headers": [
+              "X-Powered-By",
+              "Server"
+            ]
+          }
+        ]
+      },
+      {
+        "type": "if_module",
+        "module": "mod_expires.c",
+        "desc" : "Cache static assets for 1 year",
+        "directives": [
+          {
+            "type": "expires_by_type",
+            "rules": {
+              "image/jpeg": "access plus 1 year",
+              "image/gif": "access plus 1 year",
+              "image/png": "access plus 1 year",
+              "image/webp": "access plus 1 year",
+              "image/svg+xml": "access plus 1 year",
+              "image/x-icon": "access plus 1 year",
+              "image/vnd.microsoft.icon": "access plus 1 year"
+            }
+          },
+          {
+            "type": "expires_by_type",
+            "rules": {
+              "video/webm": "access plus 1 year",
+              "video/mp4": "access plus 1 year",
+              "video/mpeg": "access plus 1 year"
+            }
+          },
+          {
+            "type": "expires_by_type",
+            "rules": {
+              "font/ttf": "access plus 1 year",
+              "font/otf": "access plus 1 year",
+              "font/woff": "access plus 1 year",
+              "font/woff2": "access plus 1 year",
+              "application/font-woff": "access plus 1 year",
+              "application/font-woff2": "access plus 1 year"
+            }
+          },
+          {
+            "type": "expires_by_type",
+            "rules": {
+              "text/css": "access plus 1 year",
+              "text/javascript": "access plus 1 year",
+              "application/javascript": "access plus 1 year",
+              "application/pdf": "access plus 1 year"
+            }
+          }
+        ]
+      },
+      {
+        "type": "rewrite_engine",
+        "state": "On"
+      },
+      {
+        "type": "files",
+        "pattern": ".htaccess",
+        "desc" : "Deny access to server config file",
+        "directives": [
+          {
+            "type": "rewrite_rule",
+            "pattern": "",
+            "target": "/",
+            "flags": [
+              "R=301",
+              "L"
+            ]
+          },
+          {
+            "type": "deny"
+          }
+        ]
+      },
+      {
+        "type": "files_match",
+        "desc" : "Deny access to hidden files",
+        "pattern": "^\\.",
+        "directives": [
+          {
+            "type": "rewrite_rule",
+            "pattern": "''",
+            "target": "/",
+            "flags": [
+              "R=301",
+              "L"
+            ]
+          },
+          {
+            "type": "deny"
+          }
+        ]
+      },
+      {
+        "type": "rewrite_rule",
+        "desc" : "Deny access to .git folder",
+        "pattern": "^\\.git",
+        "target": "-",
+        "flags": [
+          "R=403",
+          "L"
+        ]
+      },
+      {
+        "type": "rewrite_rule",
+        "desc" : "Deny access to foundation file",
+        "pattern": "^foundation\\.php",
+        "target": "web/$1",
+        "flags": [
+          "L",
+          "QSA"
+        ]
+      },
+      {
+        "type": "files_match",
+        "pattern": "\\.(env|ini|psd|log|sh|sql|view|inc|lock)$",
+        "directives": [
+          {
+            "type": "rewrite_rule",
+            "pattern": "''",
+            "target": "/",
+            "flags": [
+              "R=301",
+              "L"
+            ]
+          },
+          {
+            "type": "deny"
+          }
+        ]
+      },
+      {
+        "type": "files_match",
+        "pattern": "(composer|package|package-lock)\\.json",
+        "directives": [
+          {
+            "type": "rewrite_rule",
+            "pattern": "''",
+            "target": "/",
+            "flags": [
+              "R=301",
+              "L"
+            ]
+          },
+          {
+            "type": "deny"
+          }
+        ]
+      },
+      {
+        "type": "rewrite_cond_chain",
+        "desc" : "Force website to redirect to www.domain.tld and Make condition active on production server",
+        "conds": [
+          {
+            "variable": "%{REMOTE_HOST}",
+            "pattern": "!127.0.0.1"
+          },
+          {
+            "variable": "%{REMOTE_HOST}",
+            "pattern": "!^192.168"
+          },
+          {
+            "variable": "%{REMOTE_HOST}",
+            "pattern": "!::1"
+          },
+          {
+            "variable": "%{HTTP_HOST}",
+            "pattern": "!^([^.]+)\\.([^.]+)\\.([^.]+)"
+          }
+        ],
+        "rule": {
+          "type": "rewrite_rule",
+          "pattern": "^(.*)$",
+          "target": "https://www.%{HTTP_HOST}/$1",
+          "flags": [
+            "R=301",
+            "L"
+          ]
+        }
+      },
+      {
+        "type": "rewrite_cond_chain",
+        "desc" : "Force Https on production server if not forwarded already",
+        "conds": [
+          {
+            "variable": "%{REMOTE_HOST}",
+            "pattern": "!127.0.0.1"
+          },
+          {
+            "variable": "%{REMOTE_HOST}",
+            "pattern": "!^192.168"
+          },
+          {
+            "variable": "%{REMOTE_HOST}",
+            "pattern": "!::1"
+          },
+          {
+            "variable": "%{SERVER_PORT}",
+            "pattern": "80"
+          },
+          {
+            "variable": "%{HTTP:X-Forwarded-Proto}",
+            "pattern": "!https"
+          }
+        ],
+        "rule": {
+          "type": "rewrite_rule",
+          "pattern": "^(.*)$",
+          "target": "https://%{HTTP_HOST}/$1",
+          "flags": [
+            "R=301",
+            "L"
+          ]
+        }
+      },
+      {
+        "type": "rewrite_cond_chain",
+        "desc" : "Allow static assets to be sent to the client",
+        "conds": [
+          {
+            "variable": "%{REQUEST_FILENAME}",
+            "check": "-f",
+            "logic" : "OR"
+          },
+          {
+            "variable": "%{REQUEST_FILENAME}",
+            "check": "-d",
+            "logic" : "OR"
+          },
+          {
+            "variable": "%{REQUEST_FILENAME}",
+            "check": "-l"
+          }
+        ],
+        "rule": {
+          "type": "rewrite_rule",
+          "pattern": "^",
+          "target": "-",
+          "flags": [
+            "L"
+          ]
+        }
+      },
+      {
+        "type": "rewrite_cond_chain",
+        "desc" : "Hide PHP extension from the url",
+        "conds": [
+          {
+            "variable": "%{REQUEST_FILENAME}.php",
+            "check": "-f"
+          }
+        ],
+        "rule": {
+          "type": "rewrite_rule",
+          "pattern": "^",
+          "target": "%{REQUEST_URI}.php",
+          "flags": [
+            "L"
+          ]
+        }
+      },
+      {
+        "type": "rewrite_rule",
+        "desc" : "Send all request to app entry file",
+        "pattern": "^(.*)$",
+        "target": "index.php?brick=%{REQUEST_URI}",
+        "flags": [
+          "QSA"
+        ]
+      },
+      {
+        "type": "rewrite_rule",
+        "pattern": "^index\\.php/?brick=$",
+        "target": "/$1",
+        "flags": [
+          "L",
+          "R=301",
+          "NC"
+        ]
+      }
+    ],
+    "special" : [
+      { "type": "server_signature", "value": "Off" },
+      { "type": "options", "flags": ["-Indexes"] },
+      { "type": "rewrite_engine", "state": "On" },
+      {
+        "type": "files",
+        "pattern": ".htaccess",
+        "directives": [
+          {
+            "type": "rewrite_rule",
+            "pattern": "^(.*)$",
+            "target": "index.php?brick=$1",
+            "flags": ["L","QSA"]
+          },
+          { "type": "deny" }
+        ]
+      },
+      {
+        "type": "rewrite_rule",
+        "pattern": "^(.*)$",
+        "target": "index.php?brick=$1",
+        "flags": ["L","QSA"]
+      }
+    ],
+    "root" : [
+      { "type": "server_signature", "value": "Off" },
+      { "type": "options", "flags": ["-Indexes"] },
+      { "type": "rewrite_engine", "state": "On" },
+      {
+        "type": "files",
+        "pattern": ".htaccess",
+        "directives": [
+          {
+            "type": "rewrite_rule",
+            "pattern": "^(.*)$",
+            "target": "web/$1",
+            "flags": ["L","QSA"]
+          },
+          { "type": "deny" }
+        ]
+      },
+      {
+        "type": "rewrite_rule",
+        "pattern": "^(.*)$",
+        "target": "web/$1",
+        "flags": ["L","QSA"]
+      }
+    ]
   }
 }

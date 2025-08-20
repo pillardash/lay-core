@@ -9,10 +9,15 @@ use BrickLayer\Lay\Core\LayException;
  */
 trait EnumHelper
 {
-    public static function to_enum(string $value, bool $throw_error = false, bool $use_value = true) : ?self
+    public static function to_enum(string $value, bool $throw_error = false, bool $use_value = true, bool $case_sensitive = true) : ?self
     {
         foreach (self::cases() as $enum) {
             $entry = $use_value ? ($enum->value ??  $enum->name) : $enum->name;
+
+            if(!$case_sensitive) {
+                $value = strtolower($value);
+                $entry = strtolower($entry);
+            }
 
             if($value == $entry)
                 return $enum;

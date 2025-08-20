@@ -90,12 +90,6 @@ final class Domain {
             self::$domain_ram = $_SESSION[self::$domain_list_key];
     }
 
-    /**
-     * @param mixed $value
-     * @param null|string|int $key
-     *
-     * @psalm-param array{pattern: string, id: string}|null|true $key
-     */
     private function domain_cache_key(DomainCacheKeys $key_type, string|null|int $key = null, mixed $value = null, bool $cache = true) : mixed
     {
         $cache = $cache && self::$cache_domains;
@@ -172,7 +166,7 @@ final class Domain {
             $dom = $this->get_domain_by_id("api-endpoint");
 
             $id = $dom['id'];
-            $pattern = $dom['patterns'][0];
+            $pattern = $dom['pattern'];
             $builder = $dom['builder'];
         }
 
@@ -180,8 +174,7 @@ final class Domain {
         $this->cache_active_domain($id, $pattern);
 
         $builder_class = $builder;
-        $file = explode("\\", $builder);
-        $domain_name = $file[1];
+        $domain_name = self::from_builder($builder);
         $domain_root = "web" . DIRECTORY_SEPARATOR . "domains" . DIRECTORY_SEPARATOR . "$domain_name" . DIRECTORY_SEPARATOR;
 
         $data = App::new();
@@ -203,7 +196,7 @@ final class Domain {
         self::$current_route_details['pattern'] = $pattern;
         self::$current_route_details['domain_name'] = $domain_name;
         self::$current_route_details['domain_referrer'] = $_SERVER['HTTP_LAY_DOMAIN'] ?? $domain_name;
-        self::$current_route_details['domain_type'] = self::$domain_type;
+        self::$current_route_details['domain_type'] = self::$domain_type->name;
         self::$current_route_details['domain_id'] = $id;
         self::$current_route_details['domain_uri'] = str_replace("/web/", "/", $data->domain) . $uri;
         self::$current_route_details['domain_base'] = $data->domain . $domain_base;
@@ -417,7 +410,7 @@ final class Domain {
         $base = self::$app->base_no_proto;
         $sub_domain = explode(".", $base, 3);
         $local_dir = explode("/", self::$current_route, 2);
-        $is_ngrok = @$_SERVER['REMOTE_ADDR'] == "127.0.0.1";
+        $is_ngrok = Server::new()->truly_dev_env;
 
         return [
             "ngrok" => [
@@ -455,7 +448,7 @@ final class Domain {
         //  https://clients.example.com;
         //  https://vendors.example.com;
         //
-        // This condition is looking out for "admin" || "clients" || "vendors" in the `patterns` argument.
+        // This condition is looking out for "admin" || "clients" || "vendors" in the `pattern` argument.
         $is_subdomain = $domain['sub']['found'];
 
         // Determines if a request is from ngrok and treats it like a local domain
@@ -471,7 +464,7 @@ final class Domain {
         //  localhost/example.com/clients/;
         //  localhost/example.com/vendors/;
         //
-        // This condition is looking out for "/admin" || "/clients" || "/vendors" in the `patterns` argument.
+        // This condition is looking out for "/admin" || "/clients" || "/vendors" in the `pattern` argument.
         $is_local_domain = $domain['local']['found'] ?: $is_ngrok;
 
         if(($is_subdomain && $is_local_domain) && !$is_ngrok)
@@ -505,20 +498,18 @@ final class Domain {
             return true;
 
         if(isset(self::$indexed_domain)) {
-            $current_domain_pattern = @$this->get_domain_by_id(self::$indexed_domain)['patterns'];
+            $pattern = $this->get_domain_by_id(self::$indexed_domain)['pattern'] ?? null;
 
-            if(empty($current_domain_pattern))
+            if(empty($pattern))
                 Exception::throw_exception("Domain id: [" . self::$indexed_domain . "] is invalid", "DomainException");
 
-            foreach ($current_domain_pattern as $pattern) {
-                $this->test_pattern(self::$indexed_domain, $pattern);
+            $this->test_pattern(self::$indexed_domain, $pattern);
 
-                $this->activate_domain(
-                    self::$indexed_domain,
-                    $pattern,
-                    $this->get_cached_domain_details(self::$indexed_domain)['builder']
-                );
-            }
+            $this->activate_domain(
+                self::$indexed_domain,
+                $pattern,
+                $this->get_cached_domain_details(self::$indexed_domain)['builder']
+            );
 
             return true;
         }
@@ -531,7 +522,7 @@ final class Domain {
             if($rtn == LayLoop::BREAK)
                 return true;
 
-            if($id == "default" || $pattern == "*") {
+            if($id == "default") {
                 $builder = $this->get_cached_domain_details($id)['builder'];
                 $this->activate_domain($id, $pattern, $builder);
             }
@@ -540,32 +531,40 @@ final class Domain {
         return false;
     }
 
-    private function cache_patterns(string $id, array $patterns) : void {
-        foreach ($patterns as $pattern) {
-            $this->cache_all_domain_ids($id, $pattern);
+    private function cache_pattern(string $id, string $pattern) : void {
+        $this->cache_all_domain_ids($id, $pattern);
 
-            $this->test_pattern($id, $pattern);
+        $this->test_pattern($id, $pattern);
 
-            if($id == "default" || $pattern == "*") {
-                $this->all_domain_is_cached();
-                $this->match_cached_domains();
-            }
+        if($id == "default") {
+            $this->all_domain_is_cached();
+            $this->match_cached_domains();
         }
     }
 
-    public function create(string $id, string $builder, array $patterns = ["*"], bool $cli_mode = false) : void {
+    /**
+     * Get the domain name from its builder class string
+     * @return string
+     */
+    public static function from_builder(string $builder) : string
+    {
+        return explode("\\", $builder)[1];
+    }
+
+    public function create(string $id, string $builder, string $pattern = "*", bool $cli_mode = false, DomainType $type = DomainType::REGULAR) : void {
         self::init_lay();
         self::init_cache_domain();
 
         if($cli_mode) {
             self::$indexed_domain = $id;
             self::$cli_mode = true;
-            $_SERVER['REQUEST_URI'] ??= $patterns[0];
+            $_SERVER['REQUEST_URI'] ??= $pattern;
 
             $this->cache_domain_details([
                 "id" => $id,
-                "patterns" => $patterns,
-                "builder" => $builder
+                "pattern" => $pattern,
+                "builder" => $builder,
+                "create_type" => $type->name
             ]);
 
             $this->all_domain_is_cached();
@@ -578,11 +577,12 @@ final class Domain {
 
         $this->cache_domain_details([
             "id" => $id,
-            "patterns" => $patterns,
-            "builder" => $builder
+            "pattern" => $pattern,
+            "builder" => $builder,
+            "create_type" => $type->name
         ]);
 
-        $this->cache_patterns($id, $patterns);
+        $this->cache_pattern($id, $pattern);
     }
 
     public function mock(string $domain_id, ?string $host = null, bool $use_https = true) : void
@@ -597,6 +597,14 @@ final class Domain {
         include_once Server::new()->web . "index.php";
     }
 
+    /**
+     * @return array<int, array{
+     *      id: string,
+     *      pattern: string,
+     *      create_type: DomainType,
+     *      builder: ViewCast,
+     * }>
+     */
     public function list() : array
     {
         self::$list_domain_only = true;
@@ -623,6 +631,15 @@ final class Domain {
         return self::$current_route_details[$key];
     }
 
+    /**
+     * @param string $id
+     * @return array{
+     *     id: string,
+     *     pattern: string,
+     *     builder: ViewCast,
+     *     create_type: DomainType,
+     * }|null
+     */
     public function get_domain_by_id(string $id) : ?array
     {
         return $this->get_cached_domain_details($id);

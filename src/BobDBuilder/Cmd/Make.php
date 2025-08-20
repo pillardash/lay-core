@@ -6,6 +6,7 @@ use BrickLayer\Lay\BobDBuilder\Cmd\Traits\Make\AutoDeploy;
 use BrickLayer\Lay\BobDBuilder\Cmd\Traits\Make\Brick;
 use BrickLayer\Lay\BobDBuilder\Cmd\Traits\Make\Domain;
 use BrickLayer\Lay\BobDBuilder\Cmd\Traits\Make\JsConfig;
+use BrickLayer\Lay\BobDBuilder\Cmd\Traits\Make\ServerConfig;
 use BrickLayer\Lay\BobDBuilder\EnginePlug;
 use BrickLayer\Lay\BobDBuilder\Interface\CmdLayout;
 use BrickLayer\Lay\Libs\Dir\LayDir;
@@ -17,6 +18,7 @@ final class Make implements CmdLayout
     use Brick;
     use AutoDeploy;
     use JsConfig;
+    use ServerConfig;
 
     private EnginePlug $plug;
     private array $tags;
@@ -32,6 +34,7 @@ final class Make implements CmdLayout
         $plug->add_arg($this, ["make:brick"], 'make_brick', 0, 1);
         $plug->add_arg($this, ["make:auto_deploy"], 'make_auto_deploy', 0, 1);
         $plug->add_arg($this, ["make:jsconfig"], 'make_jsconfig', true);
+        $plug->add_arg($this, ["make:server_config"], 'make_server_config', 0);
         $plug->add_arg($this, ["make:config"], 'make_bob_config', true);
     }
 
@@ -49,6 +52,7 @@ final class Make implements CmdLayout
         $this->domain();
         $this->auto_deploy();
         $this->jsconfig();
+        $this->server_config();
         $this->bob_config();
     }
 

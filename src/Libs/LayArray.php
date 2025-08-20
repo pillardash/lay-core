@@ -249,18 +249,21 @@ abstract class LayArray
      *
      * @param array $array
      * @param callable(mixed, mixed):array $callback
+     * @param string|null $glue Use this to make the return value return as a string.
+     * This only works if the array is not 2D
      *
-     * @return array[]
-     *
-     * @psalm-return list{0?: array,...}
+     * @return array|string
      */
-    public static function map(array $array, callable $callback) : array
+    public static function map(array $array, callable $callback, ?string $glue = null) : array|string
     {
         $all = [];
 
         foreach ($array as $k => $v) {
             $all[] = $callback($v, $k);
         }
+
+        if($glue && !is_array($all[0]))
+            return implode($glue, $all);
 
         return $all;
     }
