@@ -67,10 +67,12 @@ trait ServerConfig
         $file = $conf_types[$type]['file'];
         $generator = $conf_types[$type]['gen'];
 
+        $this->plug->write_info("Server: " . $type->name . "\n");
+
         $put_conf = function ($dest, $rules) use ($conf_types, $file, $generator) {
             if (file_exists($dest . $file) && !$this->plug->force) {
                 $this->plug->write_warn(
-                    "File exists in destination: *$dest*\nUse the --force tag to overwrite it\n",
+                    "File exists in destination: *$dest$file*\nUse the --force tag to overwrite it\n",
                     ['kill' => false]
                 );
 
@@ -102,7 +104,7 @@ trait ServerConfig
             $dest = $domain_root . $name . DIRECTORY_SEPARATOR;
             $rules = $server_rules['special'];
 
-            if ($domain['create_type'] == DomainType::REGULAR) {
+            if ($domain['create_type'] == DomainType::REGULAR->name) {
                 $dest = $domain_root . $name . DIRECTORY_SEPARATOR . "public" . DIRECTORY_SEPARATOR;
                 $rules = $server_rules['regular'];
             }

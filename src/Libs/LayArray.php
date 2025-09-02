@@ -59,24 +59,6 @@ abstract class LayArray
     }
 
     /**
-     * @deprecated use `any` or `every` to express yourself. Some is confusing in the way it is used
-     * Returns a new array of list of values when the callback resolves to true and ignores the value of it returns false
-     *
-     * @param array $array
-     * @param callable $callback
-     * @param bool $preserve_key
-     *
-     * @return (mixed|null)[]
-     *
-     * @psalm-return list{mixed|null}
-     */
-    public static function some(array $array, callable $callback, bool $preserve_key = false) : array
-    {
-        LayException::log("Depreciated method `some` used; Use `any` or `every` instead. `some` is confusing");
-        return [self::any($array, $callback)['value']];
-    }
-
-    /**
      * Loops through the array and returns the first array that satisfies the condition set.
      * Returns null if nothing checks out
      *

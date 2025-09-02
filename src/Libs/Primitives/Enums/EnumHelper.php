@@ -41,16 +41,6 @@ trait EnumHelper
         return false;
     }
 
-    /**
-     * @see cases_assoc
-     * @deprecated use cases_assoc
-     * @return array
-     */
-    public static function cases_str() : array
-    {
-        return self::cases_assoc();
-    }
-
     public static function cases_assoc() : array
     {
         $all = [];

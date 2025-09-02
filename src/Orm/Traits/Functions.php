@@ -211,36 +211,4 @@ trait Functions
 
         return "(DATEDIFF($x1, $x2))";
     }
-
-
-
-
-    /**
-     * @deprecated use json_contains
-     * @uses \BrickLayer\Lay\Orm\SQL::json_contains()
-     * @param string $column
-     * @param mixed $value
-     * @return string
-     */
-    final public function contains(string $column, mixed $value) : string
-    {
-        return "JSON_CONTAINS($column, '\"$value\"', '$')";
-    }
-
-    /**
-     * @deprecated Find alternatives
-     * @param string $column
-     * @param mixed $key
-     * @param bool $unquote
-     * @return string
-     */
-    final public function extract(string $column, mixed $key, bool $unquote = true) : string
-    {
-        $x = "JSON_EXTRACT($column, '$.$key')";
-
-        if($unquote)
-            return "JSON_UNQUOTE($x)";
-
-        return $x;
-    }
 }

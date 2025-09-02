@@ -28,7 +28,7 @@ $max_retries = LayFn::env('SMTP_MAX_QUEUE_RETRIES',3);
 $max_queue_items = LayFn::env('SMTP_MAX_QUEUE_ITEMS', 5);
 $max_queue_items = max($max_queue_items, 1);
 
-$send_on_dev = LayFn::extract_cli_tag("--send-on-dev", false) ?? false;
+$send_on_dev = LayFn::extract_cli_tag("--send-on-dev", true) ?? false;
 
 // There should always be an Email class inside the utils/ directory.
 // This class is where the email handler will get the template of the mails
