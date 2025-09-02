@@ -176,7 +176,7 @@ final class LayCron
                 continue;
             }
 
-            $job_app_id = LayFn::extract_cli_tag(self::APP_ID_KEY, true, $job);
+            $job_app_id = LayFn::extract_cli_tag(self::APP_ID_KEY, string_arg: $job);
             $job_app_id = $job_app_id ? trim($job_app_id) : $job_app_id;
 
             if($job_app_id != $app_id) {
@@ -435,7 +435,7 @@ final class LayCron
             if($i == 0 && str_starts_with($job, "MAILTO"))
                 continue;
 
-            $job_app_id = LayFn::extract_cli_tag(self::APP_ID_KEY, true, $job);
+            $job_app_id = LayFn::extract_cli_tag(self::APP_ID_KEY, string_arg: $job);
             $job_app_id = $job_app_id ? trim($job_app_id, "'") : $job_app_id;
 
             if($app_id == $job_app_id)

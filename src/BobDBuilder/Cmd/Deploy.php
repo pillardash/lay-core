@@ -9,6 +9,7 @@ use BrickLayer\Lay\Core\Server;
 use BrickLayer\Lay\Libs\Dir\LayDir;
 use BrickLayer\Lay\Libs\LayCache;
 use BrickLayer\Lay\Libs\LayDate;
+use BrickLayer\Lay\Libs\LayFn;
 use BrickLayer\Lay\Libs\Primitives\Enums\LayLoop;
 use DirectoryIterator;
 use Exception;
@@ -20,9 +21,9 @@ final class Deploy implements CmdLayout
     private string $root;
     private ?string $commit_msg;
     private object $config;
-    private ?string $ignore;
-    private ?string $copy_only;
-    private string $no_cache;
+    private string $ignore;
+    private string $copy_only;
+    private bool $no_cache;
     private bool $push_git = true;
 
     private function talk(string $message) : void
@@ -47,12 +48,9 @@ final class Deploy implements CmdLayout
         if(!isset($tags['deploy']))
             return;
 
-        $this->commit_msg = $this->plug->extract_tags(["-m", "-g"], 0)[0] ?? null;
-        $this->push_git = $this->plug->extract_tags(["-ng", "--no-git"], false)[0] ?? $this->push_git;
-        $git_only = $this->plug->extract_tags(["-go", "--git-only"], true)[0] ?? false;
+        $this->commit_msg = LayFn::extract_cli_tag("-m");
+        $this->push_git = LayFn::extract_cli_tag("-ng,--no-git", false) ?? $this->push_git;
 
-        $ignore = $this->plug->extract_tags(["--ignore"], 0);
-        $copy = $this->plug->extract_tags(["--copy-only"], 0);
         $ignore_file = $this->root . "bob.config.json";
 
         if(file_exists($this->root . "bob.ignore.json"))
@@ -61,21 +59,6 @@ final class Deploy implements CmdLayout
                 . "Run: php bob make:config for the new bob config file or delete this old config file to suppress this error",
                 [ "kill" => true ]
             );
-
-        if($ignore && $ignore[0] == null)
-            $this->plug->write_warn(
-                "You added the ignore flag but didn't include the folder or file to ignore.\n"
-                . "Example: --ignore 'ckeditor,sass,font.wotff'"
-            );
-
-        if($copy && $copy[0] == null)
-            $this->plug->write_warn(
-                "You added the copy-only flag but didn't include the folder or file to copy only.\n"
-                . "Example: --copy-only 'ckeditor,sass,font.wotff'"
-            );
-
-        $this->ignore = $ignore[0] ?? null;
-        $this->copy_only = $copy[0] ?? null;
 
         if(file_exists($ignore_file)) {
             $ignore = json_decode(file_get_contents($ignore_file));
@@ -93,19 +76,13 @@ final class Deploy implements CmdLayout
         if(!$this->push_git)
             $this->talk("- *--no-git* flag detected, so git will be ignored");
 
-        $this->no_cache = $this->plug->extract_tags(["--no-cache", "-nc"], true)[0] ?? false;
+        $this->no_cache = LayFn::extract_cli_tag("-nc,--no-cache", true) ?? false;
 
         if($this->no_cache) {
             $this->talk("- *--no-cache* detected. Entire project will be compressed...");
             new BobExec("purge:static_prod --silent");
             new BobExec("link:prune --silent");
             new BobExec("link:refresh --silent");
-        }
-
-        if($git_only) {
-            $this->talk("- Pushing to git only *--git-only* tag detected");
-            $this->push_with_git();
-            return;
         }
 
         $this->check_dependencies();
@@ -127,7 +104,6 @@ final class Deploy implements CmdLayout
         $ignore_path = [];
 
         $purge_lookup_ext = ["php", "view", "inc", "html", "js"];
-        $purge_lookup_ext_user = [];
         $whitelist = "";
         $lookup = "";
 
@@ -205,7 +181,7 @@ final class Deploy implements CmdLayout
             },
 
             // After the file has been copied, work on it if it meets our criteria
-            post_copy: function ($file,$parent_dir,$output_dir) use ($lookup, $whitelist, $domain, $domain_root, $is_css, $is_js, &$error, &$changes, $copy_only, $gen_regex) {
+            post_copy: function ($file,$parent_dir,$output_dir) use ($lookup, $whitelist, $domain, $is_css, $is_js, &$error, &$changes, $copy_only, $gen_regex) {
 
                 // Check if directory matches one that needs to be copied only
                 foreach ($copy_only as $copy) {

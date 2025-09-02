@@ -271,7 +271,7 @@ abstract class BaseModelHelper
         return $this->add_batch($columns, $fun);
     }
 
-    public function count(string $field, string $value_or_operator, ?string $value = null) : int
+    public function count(string $field, mixed $value_or_operator, ?string $value = null) : int
     {
         $db = static::db();
 
@@ -316,7 +316,7 @@ abstract class BaseModelHelper
         return $this;
     }
 
-    public function get_by(string $field, string $value_or_operator, ?string $value = null) : static
+    public function get_by(string $field, mixed $value_or_operator, ?string $value = null) : static
     {
         $db = static::db();
 
@@ -409,20 +409,9 @@ abstract class BaseModelHelper
     }
 
     /**
-     * An alias for all_by_col.
-     * @deprecated use all_by_col
-     * @see all_by_col
      * @return array<int, array<string, mixed>>
      */
-    public function all_by_id(string $column, string $value_or_operator, ?string $value = null) : array
-    {
-        return $this->all_by_col($column, $value_or_operator, $value);
-    }
-
-    /**
-     * @return array<int, array<string, mixed>>
-     */
-    public function all_by_col(string $column, string $value_or_operator, ?string $value = null) : array
+    public function all_by_col(string $column, mixed $value_or_operator, ?string $value = null) : array
     {
         $db = static::db();
 

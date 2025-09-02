@@ -663,7 +663,7 @@ trait SelectorOOPCrud
             $cols = "";
 
             foreach ($columns as $as => $column) {
-                $cols .= "$column AS $as,";
+                $cols .= is_string($as) ? "$column AS $as," : "$column,";
             }
 
             $cols = rtrim($cols, ",");

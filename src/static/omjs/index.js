@@ -337,6 +337,12 @@ const $in = (element, parent__selector = $doc, mode = "down") => {
     } else return parent__selector.contains(element);
 };
 
+const $exceeds = (element, size) => {
+    if (element.type !== "file") return;
+    if (element.files.length === 0) return false;
+    return element.files[0].size > size;
+};
+
 const $get = (name, query = true) => {
     if (query) return new URLSearchParams($loc.search).get(name);
     let origin = $loc.origin;
@@ -363,38 +369,6 @@ const $get = (name, query = true) => {
         default:
             return urlComplete;
     }
-};
-
-const $ucFirst = string => {
-    let fullString = "";
-    string.split(" ").forEach((word => {
-        let smallLetter = word.charAt(0);
-        fullString += " " + word.replace(smallLetter, smallLetter.toUpperCase());
-    }));
-    return fullString.trim();
-};
-
-const $mirror = (parentField, ...children) => {
-    $on(parentField, "input", (() => {
-        children.forEach((kid => {
-            if (parentField.value === undefined) kid.value = parentField.innerHTML; else kid.value = parentField.value;
-        }));
-    }));
-};
-
-const $img2blob = img => {
-    const canvas = $doc.createElement("canvas");
-    const context = canvas.getContext("2d");
-    canvas.width = img.width;
-    canvas.height = img.height;
-    context.drawImage(img, 0, 0);
-    return canvas.toDataURL("image/png");
-};
-
-const $exceeds = (element, size) => {
-    if (element.type !== "file") return;
-    if (element.files.length === 0) return false;
-    return element.files[0].size > size;
 };
 
 const $media = ({srcElement: srcElement, previewElement: previewElement, then: then = null, on: on = "change", useReader: useReader = true, useOn: useOn = true}) => {
@@ -493,47 +467,6 @@ const $showPassword = (callbackFn = (fieldType => fieldType), throwError = true)
     }));
 };
 
-const $rand = (min, max, mode = 0, silent = true) => {
-    min = Math.ceil(min), max = Math.floor(max);
-    let x;
-    if (mode === 1) {
-        x = Math.floor(Math.random() * (max - min)) + min;
-        if (silent === false) console.log("Rand (x => r < y):", x);
-        return x;
-    }
-    x = Math.floor(Math.random() * (max - min + 1)) + min;
-    if (silent === false) console.log("Rand (x => r <= y):", x);
-    return x;
-};
-
-const $view = element => {
-    element = $omjsElSub(element, "$view");
-    let rect = element.getBoundingClientRect();
-    let top = rect.top;
-    let left = rect.left;
-    let right = rect.right;
-    let bottom = rect.bottom;
-    let viewHeight = $win.innerHeight;
-    let viewWidth = $win.innerWidth;
-    let inView = true;
-    if (top < 0 && bottom < 0 || top > viewHeight && bottom > viewHeight || (left < 0 && right < 0 || left > viewWidth && right > viewWidth)) inView = false;
-    return {
-        top: top,
-        left: left,
-        bottom: bottom,
-        right: right,
-        inView: inView
-    };
-};
-
-const $hasFocus = element => {
-    let active = $doc.activeElement;
-    if ($in(active, element, "top")) return true;
-    return active === element;
-};
-
-const $overflow = element => element.scrollHeight > element.clientHeight || element.scrollWidth > element.clientWidth;
-
 const $check = (value, type) => {
     if ($type(value) !== "String") return false;
     switch (type) {
@@ -549,85 +482,6 @@ const $check = (value, type) => {
         default:
             return true;
     }
-};
-
-const $cookie = (name = "*", value = null, expire = null, path = "/", domain = "") => {
-    if (name === "*") return $doc.cookie.split(";");
-    name = name.trim();
-    if (path) path = "Path=" + path + ";";
-    if (domain) domain = "Domain=" + domain + ";";
-    if (value === "del") {
-        value = $cookie(name);
-        return $doc.cookie = `${name}=${value}; Expires=Thu, 01 Jan 1970 00:00:00 UTC;${path}${domain}`;
-    }
-    if (value) {
-        const d = new Date, dn = new Date(d), days = (duration = 30) => dn.setDate(d.getDate() + duration);
-        if ($type(expire) === "Number") expire = days(expire);
-        expire = expire ?? new Date(days()).toUTCString();
-        return $doc.cookie = `${name}=${value};Expires=${expire};${path}${domain}"`;
-    }
-    let nameString = name + "=";
-    value = $doc.cookie.split(";").filter((item => item.includes(nameString)));
-    if (value.length) {
-        value[0] = value[0].trim();
-        return value[0].substring(nameString.length, value[0].length);
-    }
-    return "";
-};
-
-/**!
- * @deprecated use $getForm(form, validate = true, option = { message: "Error message" })
- *
- * @return {boolean} [false] if field(s) is|are empty || [true] if field(s) is|are not empty
- */ const $form = (element, option = {}) => {
-    let errorMessage = option.message ?? "Please fill all required fields!";
-    const inForm = option.inForm ?? true;
-    if (!(element.nodeName === "FORM")) element = inForm ? element.closest("FORM").elements : $sela("input, select, textarea", element);
-    if (!$id("osai-form-error")) $sel("head").$html("beforeend", `<style id="osai-form-error">.osai-form-error{background: #e66507 none padding-box !important; color: #ffff !important;}.osai-form-error::placeholder{color: #ffff !important;}</style>`);
-    let xTest = () => {
-        $sela("input[data-osai-tested='true']").forEach((test => {
-            $data(test, "osai-tested", "del");
-        }));
-    };
-    let aErrMsg = (formField, customMsg = errorMessage) => {
-        if (!$id("osai-form-error-notify")) osNote(customMsg, "danger", {
-            id: "osai-form-error-notify"
-        });
-        setTimeout((() => {
-            formField.$class("add", "osai-form-error");
-            formField.focus();
-        }), 100);
-        $on(formField, "input,change", (() => formField.$class("del", "osai-form-error")), "addEvent");
-        xTest();
-        return false;
-    };
-    let passedCheck = true;
-    for (let i = 0; i < element.length; i++) {
-        let field = element[i], test = field.name && field.required && field.disabled === false;
-        if (test && (field.value.trim() === "" || field.value === undefined || field.value === null)) passedCheck = aErrMsg(field, errorMessage); else if (test && field.type === "email" && !$check(field.value, "mail")) passedCheck = aErrMsg(field, "Invalid email format, should be <div style='font-weight: bold; text-align: center'>\"[A-Za-Z_.-]@[A-Za-Z.-].[A-Za-Z_.-].[A-Za-Z]\"</div>"); else if (test && field.type === "file" && $data(field, "max-size")) {
-            let maxSize = parseFloat($data(field, "max-size"));
-            $loop(field.files, (file => {
-                if (file.size < maxSize) return "continue";
-                const maxSizeRaw = maxSize / 1e6;
-                maxSize = (maxSizeRaw + "").toLocaleString(undefined, {
-                    minimumFractionDigits: 2
-                });
-                maxSize = maxSizeRaw > 1 ? maxSize + "mb" : maxSize + "bytes";
-                name = field.name.replaceAll("_", " ").replaceAll("-", " ");
-                passedCheck = aErrMsg(field, `File cannot exceed max size limit of ${maxSize}, please check ${name} and update it`);
-            }));
-        } else if (test && (field.type === "radio" || field.type === "checkbox") && !$data(field, "osai-tested")) {
-            let marked = 0;
-            $name(field.name).forEach((radio => {
-                $data(radio, "osai-tested", "true");
-                if (marked === 1) return;
-                if (radio.checked) marked = 1;
-            }));
-            if (marked === 0) passedCheck = aErrMsg(field, "Please select the required number of options from the required checklist");
-        }
-    }
-    xTest();
-    return passedCheck;
 };
 
 /**!
@@ -805,34 +659,6 @@ const $drag = (element, elementAnchor) => {
             element.style.left = element.offsetLeft - pos1 + "px";
         }));
     }
-};
-
-const $numFormat = (num, digits) => {
-    const lookup = [ {
-        value: 1,
-        symbol: ""
-    }, {
-        value: 1e3,
-        symbol: "k"
-    }, {
-        value: 1e6,
-        symbol: "M"
-    }, {
-        value: 1e9,
-        symbol: "G"
-    }, {
-        value: 1e12,
-        symbol: "T"
-    }, {
-        value: 1e15,
-        symbol: "P"
-    }, {
-        value: 1e18,
-        symbol: "E"
-    } ];
-    const regexp = /\.0+$|(?<=\.[0-9]*[1-9])0+$/;
-    const item = lookup.findLast((item => num >= item.value));
-    return item ? (num / item.value).toFixed(digits).replace(regexp, "").concat(item.symbol) : "0";
 };
 
 const _$_$debounceStore = {};

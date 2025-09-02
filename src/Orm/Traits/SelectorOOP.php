@@ -67,7 +67,7 @@ trait SelectorOOP
         return $this->store_vars('except', $comma_separated_columns);
     }
 
-    private function process_condition_stmt(string $column, ?string $operator_or_value = null, ?string $value = null) : string
+    private function process_condition_stmt(string $column, mixed $operator_or_value = null, ?string $value = null) : string
     {
         if($operator_or_value === null)
             return $column;
@@ -76,6 +76,7 @@ trait SelectorOOP
             $column = self::escape_identifier($column);
 
         if(is_null($value)) {
+            $operator_or_value .= "";
             return str_starts_with($operator_or_value, "(") || strtolower($operator_or_value) == 'null' ?
                 "$column=$operator_or_value" :
                 "$column='$operator_or_value'";
@@ -96,7 +97,7 @@ trait SelectorOOP
         return $this->clause_agr("WHERE", $column, $operator_or_value, $agr_values);
     }
 
-    final public function where(string $column, ?string $operator_or_value = null, ?string $value = null): self
+    final public function where(string $column, mixed $operator_or_value = null, ?string $value = null): self
     {
         $WHERE = $this->process_condition_stmt($column,$operator_or_value,$value);
 
@@ -119,15 +120,6 @@ trait SelectorOOP
         $WHERE = $this->process_condition_stmt($column,$operator_or_value,$value);
 
         return $this->clause_array(" AND $WHERE");
-    }
-
-    /**
-     * @deprecated use warp
-     * @see wrap
-     */
-    final public function bracket(callable $where_callback, ?string $prepend = null): SQL
-    {
-        return $this->wrap($prepend, $where_callback);
     }
 
     /**
@@ -162,16 +154,6 @@ trait SelectorOOP
             return $this->clause_array(trim(implode("", $this->cached_options[self::$current_index]['clause_string'])));
 
         return $this;
-    }
-
-    /**
-     * @param string $clause
-     * @return SelectorOOP|SQL
-     * @deprecated Making it a private method in version 0.7.0
-     */
-    final public function clause(string $clause): self
-    {
-        return $this->store_vars('clause', $clause);
     }
 
     private function clause_agr(string $prepend, string $column, string $operator, array $values): self
@@ -357,7 +339,7 @@ trait SelectorOOP
      * @param string|null $value
      * @return SQL
      */
-    final public function having(string $column, ?string $operator_or_value = null, ?string $value = null): SQL
+    final public function having(string $column, mixed $operator_or_value = null, ?string $value = null): SQL
     {
         $condition = $this->process_condition_stmt($column,$operator_or_value,$value);
 
@@ -367,7 +349,7 @@ trait SelectorOOP
     /**
      * @see having
      */
-    final public function or_having(string $column, ?string $operator_or_value = null, ?string $value = null): SQL
+    final public function or_having(string $column, mixed $operator_or_value = null, ?string $value = null): SQL
     {
         $condition = "OR " . $this->process_condition_stmt($column,$operator_or_value,$value);
 
@@ -377,7 +359,7 @@ trait SelectorOOP
     /**
      * @see having
      */
-    final public function and_having(string $column, ?string $operator_or_value = null, ?string $value = null): SQL
+    final public function and_having(string $column, mixed $operator_or_value = null, ?string $value = null): SQL
     {
         $condition = "AND " . $this->process_condition_stmt($column,$operator_or_value,$value);
 

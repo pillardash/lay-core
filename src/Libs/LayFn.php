@@ -135,24 +135,30 @@ final class LayFn
     /**
      * Extract the arguments passed to a script through the cli
      *
-     * @param string $key
-     * @param bool $has_value when true, it means the tag has a value. Ex: --job-uid eec3ds-d2dc-ddd.
+     * @param string $keys Comma separated key tags to search for
+     * @param mixed $value_eq If a tag is present, what the function should return as its datatype if the tag doesn't accept values
+     * @param null|string $string_arg If set, this method with extract the tag and its value from the specified variable
      * Else: --invalidate-cache
      *
      * @return string|bool|int|null
      */
-    public static function extract_cli_tag(string $key, bool $has_value, ?string $argument = null): string|null|bool|int
+    public static function extract_cli_tag(string $keys, mixed $value_eq = null, ?string $string_arg = null): string|null|bool|int
     {
         $arg_values = $GLOBALS['argv'] ?? null;
 
-        if($argument)
-            $arg_values = explode(" ", $argument);
+        if($string_arg)
+            $arg_values = explode(" ", $string_arg);
 
-        $tag_key = array_search($key, $arg_values);
         $value = null;
 
-        if ($tag_key !== false)
-            $value = $has_value ? $arg_values[$tag_key + 1] : true;
+        foreach (explode(",", $keys) as $key) {
+            $tag_key = array_search($key, $arg_values);
+
+            if ($tag_key !== false) {
+                $value = $value_eq !== null ? $arg_values[$tag_key + 1] : $value_eq;
+                break;
+            }
+        }
 
         return $value;
     }

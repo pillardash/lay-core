@@ -10,6 +10,7 @@ use BrickLayer\Lay\BobDBuilder\Helper\Console\Format\Style;
 use BrickLayer\Lay\BobDBuilder\Interface\CmdLayout;
 use BrickLayer\Lay\Core\App;
 use BrickLayer\Lay\Core\Exception;
+use BrickLayer\Lay\Core\LayException;
 use BrickLayer\Lay\Core\Server;
 use BrickLayer\Lay\Libs\Dir\LayDir;
 use BrickLayer\Lay\Libs\Primitives\Enums\LayLoop;
@@ -83,16 +84,11 @@ final class EnginePlug
             try{
                 $cmd_class->_spin();
             }
-            catch (TypeError|Error|\Exception $e){
+            catch (\Throwable $e){
                 $this->failed();
-                Exception::throw_exception(
-                    $e->getMessage() . "\n"
-                    . $e->getFile() . ":" . $e->getLine()
-                    , "BobError " . $cmd_class::class,
-                    stack_track: $e->getTrace(),
-                    exception: $e
-                );
+                LayException::throw("","BobError", $e);
             }
+
             if($cmd_class::class == $this->active_cmd_class)
                 $spun_correct_class = true;
         }
@@ -110,32 +106,20 @@ final class EnginePlug
 
             $cmd_class = $namespace . "\\" . explode(".php", $class)[0];
 
-            try{
-                $class = new ReflectionClass($cmd_class);
-            } catch (ReflectionException $e){
-                $this->failed();
-                Exception::throw_exception($e->getMessage(), "ReflectionException", exception: $e);
-            }
-
             try {
-                $class = $class->newInstance();
-            } catch (ReflectionException) {
+                $class = (new ReflectionClass($cmd_class))->newInstance();
+            } catch (ReflectionException $e) {
                 $this->failed();
-                Exception::throw_exception(
-                    " $cmd_class constructor class is private. \n"
-                    . " All Cmd classes must expose their __construct function to clear this error",
-                    "ConstructPrivate",
-                    exception: $e
-                );
+                LayException::throw("", "BobEnginePlug", $e);
             }
 
             $this->cmd_classes[] = $class;
 
             try {
                 $class->_init($this);
-            } catch (Error|\Exception $e) {
+            } catch (\Throwable $e) {
                 $this->failed();
-                Exception::throw_exception($e->getMessage(), "BobError", exception: $e);
+                LayException::throw("", "BobError", $e);
             }
         });
     }
@@ -156,41 +140,6 @@ final class EnginePlug
         }
 
         return LayLoop::CONTINUE;
-    }
-
-    /**
-     * @param bool|int $value_index
-     *
-     * @psalm-param 0|bool $value_index
-     */
-    public function extract_tags(array $tags, int|bool ...$value_index) : mixed
-    {
-        $out = false;
-
-        foreach ($tags as $tag) {
-            if($out !== false)
-                break;
-
-            $out = array_search($tag, $this->args, true);
-        }
-
-        $value = [];
-
-        foreach ($value_index as $index) {
-            if ($out === false)
-                break;
-
-            if(is_bool($index)) {
-                $value[] = $index;
-                continue;
-            }
-
-            $index++;
-
-            $value[] = $this->args[($out + $index)] ?? null;
-        }
-
-        return $value;
     }
 
     /**
@@ -261,17 +210,22 @@ final class EnginePlug
         $opts['hide_current_cmd'] ??= true;
         $opts['close_talk'] ??= true;
         $opts['kill'] ??= !$this->catch_error;
-        $this->failed();
+
+        if($opts['kill'])
+            $this->failed();
 
         $this->write($message, CmdOutType::WARN, $opts);
     }
 
     public function write(string $message, ?CmdOutType $type = null, array $opts = []): void
     {
-        if($opts['silent'] ?? $this->silent)
-            return;
-
         $kill = $opts['kill'] ?? false;
+
+        if(($opts['silent'] ?? $this->silent)) {
+            if($kill) die;
+            return;
+        }
+
         $open_talk =  $opts['open_talk'] ?? false;
         $close_talk = $opts['close_talk'] ?? false;
         $current_cmd = $this->active_cmd ?: ($opts['current_cmd'] ?? "");
@@ -352,7 +306,7 @@ final class EnginePlug
             if($this->operation_successful)
                 Console::log(":) Bob is Done (:", Foreground::light_gray);
             else
-                Console::log(":( Bob is encountered some errors ):", Foreground::light_gray);
+                Console::log(":( Bob encountered some errors ):", Foreground::light_gray);
 
             if($process_duration)
                 Console::log("Duration: $process_duration seconds", Foreground::light_purple);

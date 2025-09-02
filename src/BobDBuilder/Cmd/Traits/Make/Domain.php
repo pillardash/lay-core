@@ -219,7 +219,7 @@ trait Domain
             Domain::new()->create(
                 id: "$domain_id",
                 builder: \Web\\$domain\\Plaster::class,
-                pattern: $pattern,
+                pattern: "$pattern",
                 type: DomainType::REGULAR,
             );
             
