@@ -105,7 +105,7 @@ trait Domain
             
             \BrickLayer\Lay\Core\View\Domain::new()->index("$domain_id");
             
-            include_once \BrickLayer\Lay\Core\LayConfig::server_data()->web . "index.php";
+            include_once \BrickLayer\Lay\Core\Server::new()->web . "index.php";
             
             FILE
         );
