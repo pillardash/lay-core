@@ -66,8 +66,8 @@ final class Deploy implements CmdLayout
             $copy_file = isset($ignore->copy_only) ? implode(",", $ignore->copy_only): "";
 
             $this->config = $ignore;
-            $this->ignore = $this->ignore ? $this->ignore . "," . $ignore_file : $ignore_file;
-            $this->copy_only = $this->copy_only ? $this->copy_only . "," . $copy_file : $copy_file;
+            $this->ignore = isset($this->ignore) ? $this->ignore . "," . $ignore_file : $ignore_file;
+            $this->copy_only = isset($this->copy_only) ? $this->copy_only . "," . $copy_file : $copy_file;
         }
 
         if($this->ignore)
