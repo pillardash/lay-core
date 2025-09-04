@@ -4,17 +4,17 @@ namespace BrickLayer\Lay\Libs\JsonLd;
 
 /**
  * JSON-LD Generator Class
- * 
+ *
  * A comprehensive class for generating structured data markup
  * with full autocomplete support and type safety.
- * 
+ *
  * @author Augment Agent
  * @version 1.0.0
  */
 class AIJsonLd
 {
     private array $data;
-    
+
     /**
      * Create a new JSON-LD generator instance
      */
@@ -24,7 +24,7 @@ class AIJsonLd
             "@context" => "https://schema.org"
         ];
     }
-    
+
     /**
      * Create a new instance (static factory method)
      */
@@ -32,7 +32,7 @@ class AIJsonLd
     {
         return new self();
     }
-    
+
     /**
      * Set the schema type (e.g., 'Hospital', 'Organization', 'LocalBusiness')
      */
@@ -41,7 +41,7 @@ class AIJsonLd
         $this->data["@type"] = $type;
         return $this;
     }
-    
+
     /**
      * Set the name of the entity
      */
@@ -50,7 +50,7 @@ class AIJsonLd
         $this->data["name"] = $name;
         return $this;
     }
-    
+
     /**
      * Set an alternate name
      */
@@ -59,7 +59,7 @@ class AIJsonLd
         $this->data["alternateName"] = $alternateName;
         return $this;
     }
-    
+
     /**
      * Set the description
      */
@@ -68,7 +68,7 @@ class AIJsonLd
         $this->data["description"] = $description;
         return $this;
     }
-    
+
     /**
      * Set the URL
      */
@@ -77,7 +77,7 @@ class AIJsonLd
         $this->data["url"] = $url;
         return $this;
     }
-    
+
     /**
      * Set the logo URL
      */
@@ -86,7 +86,7 @@ class AIJsonLd
         $this->data["logo"] = $logoUrl;
         return $this;
     }
-    
+
     /**
      * Set images (can be string or array)
      */
@@ -95,7 +95,7 @@ class AIJsonLd
         $this->data["image"] = is_array($images) ? $images : [$images];
         return $this;
     }
-    
+
     /**
      * Set postal address
      */
@@ -116,7 +116,7 @@ class AIJsonLd
         ];
         return $this;
     }
-    
+
     /**
      * Set geo coordinates
      */
@@ -129,7 +129,7 @@ class AIJsonLd
         ];
         return $this;
     }
-    
+
     /**
      * Set contact information
      */
@@ -141,21 +141,21 @@ class AIJsonLd
     ): self {
         $this->data["telephone"] = $telephone;
         $this->data["email"] = $email;
-        
+
         if (!isset($this->data["contactPoint"])) {
             $this->data["contactPoint"] = [];
         }
-        
+
         $this->data["contactPoint"][] = [
             "@type" => "ContactPoint",
             "telephone" => $telephone,
             "contactType" => $contactType,
             "availableLanguage" => $availableLanguages
         ];
-        
+
         return $this;
     }
-    
+
     /**
      * Add additional contact point
      */
@@ -167,17 +167,17 @@ class AIJsonLd
         if (!isset($this->data["contactPoint"])) {
             $this->data["contactPoint"] = [];
         }
-        
+
         $this->data["contactPoint"][] = [
             "@type" => "ContactPoint",
             "telephone" => $telephone,
             "contactType" => $contactType,
             "availableLanguage" => $availableLanguages
         ];
-        
+
         return $this;
     }
-    
+
     /**
      * Set operating hours (24/7 format: "Mo-Su 00:00-23:59")
      */
@@ -196,47 +196,47 @@ class AIJsonLd
         ];
         return $this;
     }
-    
+
     /**
      * Set founder information
      */
-    public function setFounder(string $name, string $jobTitle = null): self
+    public function setFounder(string $name, ?string $jobTitle = null): self
     {
         $founder = [
             "@type" => "Person",
             "name" => $name
         ];
-        
+
         if ($jobTitle) {
             $founder["jobTitle"] = $jobTitle;
         }
-        
+
         $this->data["founder"] = $founder;
         return $this;
     }
-    
+
     /**
      * Add employee
      */
-    public function addEmployee(string $name, string $jobTitle = null): self
+    public function addEmployee(string $name, ?string $jobTitle = null): self
     {
         if (!isset($this->data["employee"])) {
             $this->data["employee"] = [];
         }
-        
+
         $employee = [
             "@type" => "Person",
             "name" => $name
         ];
-        
+
         if ($jobTitle) {
             $employee["jobTitle"] = $jobTitle;
         }
-        
+
         $this->data["employee"][] = $employee;
         return $this;
     }
-    
+
     /**
      * Set medical specialties (for hospitals/medical organizations)
      */
@@ -245,7 +245,7 @@ class AIJsonLd
         $this->data["medicalSpecialty"] = $specialties;
         return $this;
     }
-    
+
     /**
      * Add available service
      */
@@ -254,16 +254,16 @@ class AIJsonLd
         if (!isset($this->data["availableService"])) {
             $this->data["availableService"] = [];
         }
-        
+
         $this->data["availableService"][] = [
             "@type" => $type,
             "name" => $name,
             "description" => $description
         ];
-        
+
         return $this;
     }
-    
+
     /**
      * Set payment methods accepted
      */
@@ -272,7 +272,7 @@ class AIJsonLd
         $this->data["paymentAccepted"] = $paymentMethods;
         return $this;
     }
-    
+
     /**
      * Set currencies accepted
      */
@@ -281,7 +281,7 @@ class AIJsonLd
         $this->data["currenciesAccepted"] = $currency;
         return $this;
     }
-    
+
     /**
      * Set price range (e.g., "$", "$$", "$$$", "$$$$")
      */
@@ -290,7 +290,7 @@ class AIJsonLd
         $this->data["priceRange"] = $priceRange;
         return $this;
     }
-    
+
     /**
      * Add credential/accreditation
      */
@@ -299,7 +299,7 @@ class AIJsonLd
         if (!isset($this->data["hasCredential"])) {
             $this->data["hasCredential"] = [];
         }
-        
+
         $this->data["hasCredential"][] = [
             "@type" => "EducationalOccupationalCredential",
             "credentialCategory" => $credentialCategory,
@@ -308,10 +308,10 @@ class AIJsonLd
                 "name" => $recognizedBy
             ]
         ];
-        
+
         return $this;
     }
-    
+
     /**
      * Set social media profiles
      */
@@ -320,7 +320,7 @@ class AIJsonLd
         $this->data["sameAs"] = $socialUrls;
         return $this;
     }
-    
+
     /**
      * Set aggregate rating
      */
@@ -339,7 +339,7 @@ class AIJsonLd
         ];
         return $this;
     }
-    
+
     /**
      * Add a review
      */
@@ -352,7 +352,7 @@ class AIJsonLd
         if (!isset($this->data["review"])) {
             $this->data["review"] = [];
         }
-        
+
         $this->data["review"][] = [
             "@type" => "Review",
             "author" => [
@@ -366,10 +366,10 @@ class AIJsonLd
             ],
             "reviewBody" => $reviewBody
         ];
-        
+
         return $this;
     }
-    
+
     /**
      * Set areas of knowledge/expertise
      */
@@ -378,7 +378,7 @@ class AIJsonLd
         $this->data["knowsAbout"] = $knowledge;
         return $this;
     }
-    
+
     /**
      * Set area served
      */
@@ -400,7 +400,7 @@ class AIJsonLd
         ];
         return $this;
     }
-    
+
     /**
      * Set slogan/tagline
      */
@@ -409,7 +409,7 @@ class AIJsonLd
         $this->data["slogan"] = $slogan;
         return $this;
     }
-    
+
     /**
      * Set founding date
      */
@@ -418,7 +418,7 @@ class AIJsonLd
         $this->data["foundingDate"] = $foundingDate;
         return $this;
     }
-    
+
     /**
      * Set number of employees
      */
@@ -427,7 +427,7 @@ class AIJsonLd
         $this->data["numberOfEmployees"] = $numberOfEmployees;
         return $this;
     }
-    
+
     /**
      * Set if accepting new patients/customers
      */
@@ -436,7 +436,7 @@ class AIJsonLd
         $this->data["isAcceptingNewPatients"] = $accepting;
         return $this;
     }
-    
+
     /**
      * Set smoking policy
      */
@@ -445,7 +445,7 @@ class AIJsonLd
         $this->data["smokingAllowed"] = $allowed;
         return $this;
     }
-    
+
     /**
      * Add custom property
      */
@@ -454,7 +454,7 @@ class AIJsonLd
         $this->data[$key] = $value;
         return $this;
     }
-    
+
     /**
      * Get the raw data array
      */
@@ -462,7 +462,7 @@ class AIJsonLd
     {
         return $this->data;
     }
-    
+
     /**
      * Generate the JSON-LD script tag
      */
@@ -472,12 +472,12 @@ class AIJsonLd
         if ($prettyPrint) {
             $flags |= JSON_PRETTY_PRINT;
         }
-        
-        return '<script type="application/ld+json">' . 
-               json_encode($this->data, $flags) . 
-               '</script>';
+
+        return '<script type="application/ld+json">' .
+            json_encode($this->data, $flags) .
+            '</script>';
     }
-    
+
     /**
      * Output the JSON-LD script tag directly
      */
@@ -485,7 +485,7 @@ class AIJsonLd
     {
         echo $this->generate($prettyPrint);
     }
-    
+
     /**
      * Convert to string (generates the script tag)
      */
