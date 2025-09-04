@@ -23,7 +23,7 @@ use BrickLayer\Lay\Orm\SQL;
  *     pry: string,
  *     sec: string,
  * } $color
- * @property array<int, string> $mail
+ * @property array<int, string> $email
  * @property string<int, string> $tel
  * @property string $author
  * @property string $copy
