@@ -118,7 +118,7 @@ class Action
         $post = json_decode($_POST['payload'] ?? null);
 
         if(!isset($post->pull_request)) {
-            $this->log($post?->action?->zen);
+            $this->log($post->action->zen ?? 'NOTHING SPECIFIED');
             return;
         }
 
