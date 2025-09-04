@@ -203,6 +203,7 @@ final class EnginePlug
     }
 
     public function write_talk(string $message, array $opts = []) : void {
+        $opts['hide_current_cmd'] = true;
         $this->write($message, CmdOutType::TALK, $opts);
     }
 

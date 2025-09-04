@@ -28,7 +28,7 @@ final class Deploy implements CmdLayout
 
     private function talk(string $message) : void
     {
-        $this->plug->write_talk($message, ['silent' => true]);
+        $this->plug->write_talk($message);
     }
 
 
@@ -373,7 +373,7 @@ final class Deploy implements CmdLayout
     public function compress_static() : void
     {
         LayDir::read($this->plug->server->domains, function (string $domain, string $src, DirectoryIterator $handler, array $obj) {
-            $static = $src . $domain . DIRECTORY_SEPARATOR . "static";
+            $static = $src . $domain . DIRECTORY_SEPARATOR . "public" . DIRECTORY_SEPARATOR . "static";
 
             $dev = $static . DIRECTORY_SEPARATOR . "dev";
             $prod = $static . DIRECTORY_SEPARATOR . "prod";

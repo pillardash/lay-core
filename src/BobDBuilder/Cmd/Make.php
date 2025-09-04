@@ -40,7 +40,7 @@ final class Make implements CmdLayout
 
     private function talk(string $msg) : void
     {
-        $this->plug->write_talk($msg, ['silent' => true]);
+        $this->plug->write_talk($msg, );
     }
 
     

@@ -15,7 +15,7 @@ trait Brick
         $brick = $this->tags['make_brick'][0] ?? null;
         $singleton = $this->tags['make_brick'][1] ?? true;
 
-        $talk = fn($msg) => $this->plug->write_talk($msg, ['silent' => true]);
+        $talk = fn($msg) => $this->plug->write_talk($msg, );
 
         if (!$brick)
             $this->plug->write_fail("No brick specified");
