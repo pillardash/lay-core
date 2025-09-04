@@ -151,11 +151,13 @@ final class LayFn
 
         $value = null;
 
-        foreach (explode(",", $keys) as $key) {
+        $keys = explode(",", $keys);
+
+        foreach ($keys as $key) {
             $tag_key = array_search($key, $arg_values);
 
             if ($tag_key !== false) {
-                $value = $value_eq !== null ? $arg_values[$tag_key + 1] : $value_eq;
+                $value = $value_eq === null ? ($arg_values[$tag_key + 1] ?? null) : $value_eq;
                 break;
             }
         }

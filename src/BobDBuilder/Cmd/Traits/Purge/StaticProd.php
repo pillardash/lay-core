@@ -21,10 +21,10 @@ trait StaticProd
         $shared = $this->plug->server->shared . "static" . DIRECTORY_SEPARATOR . "prod";
 
         if(is_dir($shared)) {
-            $this->plug->write_talk("Directory *shared*", ['silent' => true]);
+            $this->plug->write_talk("Directory *shared*", );
             LayDir::unlink($shared);
             $worked = true;
-            $this->plug->write_talk(" - Removed $shared", ['silent' => true]);
+            $this->plug->write_talk(" - Removed $shared", );
             print "\n";
         }
 
@@ -35,19 +35,19 @@ trait StaticProd
 
             $static = $directory . $domain . DIRECTORY_SEPARATOR . "static" . DIRECTORY_SEPARATOR . "prod";
 
-            $this->plug->write_talk("Domain *$domain*", ['silent' => true]);
+            $this->plug->write_talk("Domain *$domain*", );
 
             if(is_dir($static)) {
                 LayDir::unlink($static);
                 $worked = true;
-                $this->plug->write_talk(" - Removed $static", ['silent' => true]);
+                $this->plug->write_talk(" - Removed $static", );
             }
 
             print "\n";
         });
 
         if(!$worked) {
-            $this->plug->write_talk("No operations carried out. Directories may have been deleted already", ['silent' => true]);
+            $this->plug->write_talk("No operations carried out. Directories may have been deleted already", );
             return;
         }
 
@@ -55,6 +55,6 @@ trait StaticProd
             ->cache_file("deploy_cache", invalidate: true)
             ->dump(null);
 
-        $this->plug->write_talk("Track Cache Invalidated", ['silent' => true]);
+        $this->plug->write_talk("Track Cache Invalidated", );
     }
 }
