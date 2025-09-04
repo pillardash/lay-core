@@ -80,9 +80,8 @@ final class Deploy implements CmdLayout
 
         if($this->no_cache) {
             $this->talk("- *--no-cache* detected. Entire project will be compressed...");
+
             new BobExec("purge:static_prod --silent");
-            new BobExec("link:prune --silent");
-            new BobExec("link:refresh --silent");
         }
 
         $this->check_dependencies();
@@ -206,7 +205,6 @@ final class Deploy implements CmdLayout
                 $return = null;
 
                 $this->plug->write_talk("*[x]* Current File: *$file*", [
-                    "silent" => true,
                     "maintain_line" => true
                 ]);
 
