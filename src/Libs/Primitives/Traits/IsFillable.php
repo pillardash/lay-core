@@ -230,7 +230,7 @@ trait IsFillable {
 
     public final function props(): array
     {
-        return $this->columns;
+        return $this->columns ?? [];
     }
 
     public final function exists(): bool
