@@ -179,7 +179,7 @@ final class LayFn
 
     private static int $prev_http_code;
 
-    public static function http_response_code(ApiStatus|int $code = 0, bool $overwrite = false, bool $log_sent = true) : int|false
+    public static function http_response_code(ApiStatus|int $code = 0, bool $overwrite = false, bool $log_sent = false) : int|false
     {
         if(headers_sent($file, $line)) {
             if($log_sent)

@@ -254,6 +254,8 @@ final class LayCookieStorage
 
     public static function get(string $cookie_name) : mixed
     {
+        if($cookie_name == "*") return $_COOKIE;
+
         return $_COOKIE[$cookie_name] ?? null;
     }
 }
