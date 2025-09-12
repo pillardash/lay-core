@@ -744,31 +744,37 @@ abstract class ApiEngine {
     }
 
     public function post(string $route_uri, ApiReturnType $return_type = ApiReturnType::JSON) : self {
-        self::$request_method = ApiRequestMethod::POST->value;
+        self::$request_method = ApiRequestMethod::POST->name;
+
+        return $this->map_request($route_uri, $return_type);
+    }
+
+    public function patch(string $route_uri, ApiReturnType $return_type = ApiReturnType::JSON) : self {
+        self::$request_method = ApiRequestMethod::PATCH->name;
 
         return $this->map_request($route_uri, $return_type);
     }
 
     public function get(string $route_uri, ApiReturnType $return_type = ApiReturnType::JSON) : self {
-        self::$request_method = ApiRequestMethod::GET->value;
+        self::$request_method = ApiRequestMethod::GET->name;
 
         return $this->map_request($route_uri, $return_type);
     }
 
     public function put(string $route_uri, ApiReturnType $return_type = ApiReturnType::JSON) : self {
-        self::$request_method = ApiRequestMethod::PUT->value;
+        self::$request_method = ApiRequestMethod::PUT->name;
 
         return $this->map_request($route_uri, $return_type);
     }
 
     public function head(string $route_uri, ApiReturnType $return_type = ApiReturnType::JSON) : self {
-        self::$request_method = ApiRequestMethod::HEAD->value;
+        self::$request_method = ApiRequestMethod::HEAD->name;
 
         return $this->map_request($route_uri, $return_type);
     }
 
     public function delete(string $route_uri, ApiReturnType $return_type = ApiReturnType::JSON) : self {
-        self::$request_method = ApiRequestMethod::DELETE->value;
+        self::$request_method = ApiRequestMethod::DELETE->name;
 
         return $this->map_request($route_uri, $return_type);
     }

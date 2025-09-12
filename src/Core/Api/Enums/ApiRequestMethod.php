@@ -2,11 +2,12 @@
 
 namespace BrickLayer\Lay\Core\Api\Enums;
 
-enum ApiRequestMethod : string
+enum ApiRequestMethod
 {
-    case POST = "POST";
-    case GET = "GET";
-    case HEAD = "HEAD";
-    case PUT = "PUT";
-    case DELETE = "DELETE";
+    case POST;
+    case GET;
+    case HEAD;
+    case PUT;
+    case DELETE;
+    case PATCH;
 }
