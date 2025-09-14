@@ -190,6 +190,7 @@ final class Server
             "php" => LayServerType::PHP,
             "ngi" => LayServerType::NGINX,
             "cad" => LayServerType::CADDY,
+            "fra" => LayServerType::FRANKEN_PHP,
         };
     }
 
