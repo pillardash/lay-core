@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+
 namespace BrickLayer\Lay\Libs\Mail;
 
 use BrickLayer\Lay\Core\App;
@@ -13,7 +14,8 @@ use PHPMailer\PHPMailer\Exception;
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\SMTP;
 
-class Mailer {
+class Mailer
+{
     private static PHPMailer $mail_link;
 
     private static array $credentials = [
@@ -46,30 +48,31 @@ class Mailer {
     private string $log_data;
     private static string $log_file;
 
-    private function collect_log(string $string, int $level) : void
+    private function collect_log(string $string, int $level): void
     {
         $this->log_data .= "[X] $level >> $string\n";
     }
 
-    private function dump_log(bool $sent) : void
+    private function dump_log(bool $sent): void
     {
-        if(!isset($this->log_data)) {
+        if (!isset($this->log_data)) {
             self::write_to_log("[x] -- Mailer completed process: " . (
                 $sent ? 'SENT' : 'FAILED TO SEND; If exception, check exception logs for details'
-            ));
+                ));
             return;
         }
 
         self::write_to_log($this->log_data);
     }
 
-    private function connect_smtp() : void {
-        if(!$this->use_smtp)
+    private function connect_smtp(): void
+    {
+        if (!$this->use_smtp)
             return;
 
         self::$mail_link->SMTPDebug = SMTP::DEBUG_SERVER;            //Enable verbose debug output
         self::$mail_link->isSMTP();                                      // Send using SMTP
-        self::$mail_link->SMTPAuth   = true;                             // Enable SMTP authentication
+        self::$mail_link->SMTPAuth = true;                             // Enable SMTP authentication
 
         $this->log_data = "";
         self::$mail_link->Debugoutput = fn($str, $level) => $this->collect_log($str, $level);
@@ -83,24 +86,24 @@ class Mailer {
 
         try {
             self::$mail_link->SMTPSecure = self::$credentials['protocol'];   // Enable implicit TLS encryption
-            self::$mail_link->Host       = self::$credentials['host'];       // Set the SMTP server to send through
-            self::$mail_link->Port       = self::$credentials['port'];       // use 587 if you have set `SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS`
-            self::$mail_link->Username   = self::$credentials['username'];
-            self::$mail_link->Password   = self::$credentials['password'];
-        }catch (\Exception $e){
-            LayException::throw_exception("SMTP Credentials has not been setup. " . $e->getMessage(),"SMTPCredentialsError", exception: $e);
+            self::$mail_link->Host = self::$credentials['host'];       // Set the SMTP server to send through
+            self::$mail_link->Port = self::$credentials['port'];       // use 587 if you have set `SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS`
+            self::$mail_link->Username = self::$credentials['username'];
+            self::$mail_link->Password = self::$credentials['password'];
+        } catch (\Exception $e) {
+            LayException::throw_exception("SMTP Credentials has not been setup. " . $e->getMessage(), "SMTPCredentialsError", exception: $e);
         }
 
     }
 
     /**
+     * @return array{to: mixed|null, name: mixed|null}
      * @throws Exception
      *
-     * @return array{to: mixed|null, name: mixed|null}
      */
-    private function start_process() : array
+    private function start_process(): array
     {
-        if(!self::$credentials['host'])
+        if (!self::$credentials['host'])
             self::set_credentials();
 
         $app = App::new();
@@ -111,27 +114,26 @@ class Mailer {
         $email = $this->client['email'] ?? null;
         $name = $this->client['name'] ?? null;
 
-        if((empty($email) || empty($name)) && $this->to_client)
+        if ((empty($email) || empty($name)) && $this->to_client)
             LayException::throw_exception(
                 "Sending an email <b>to a client</b> with an empty `email`: [$email] or `name`: [$name] is not allowed!. If you wish to send to the server, use `->to_server()` method.",
                 "EmptyRequiredField"
             );
 
-        $this->server_from['email'] = $this->server_from['email'] ?? self::$credentials['default_sender_email'] ?? $app->mail[0];
+        $this->server_from['email'] = $this->server_from['email'] ?? self::$credentials['default_sender_email'] ?? $app->email[0];
         $this->server_from['name'] = $this->server_from['name'] ?? self::$credentials['default_sender_name'] ?? $app->name['short'];
 
-        $this->server['email'] = $this->server['email'] ?? $app->mail[0];
+        $this->server['email'] = $this->server['email'] ?? $app->email[0];
         $this->server['name'] = $this->server['name'] ?? $app->name['short'];
 
-        if($this->to_client) {
+        if ($this->to_client) {
             $recipient = [
                 "to" => $email,
                 "name" => $name
             ];
 
             self::$mail_link->addReplyTo($this->server['email'], $this->server['name']);
-        }
-        else {
+        } else {
             $recipient = [
                 "to" => $this->server['email'],
                 "name" => $this->server['name']
@@ -140,17 +142,17 @@ class Mailer {
             self::$mail_link->addReplyTo($email ?? $this->server['email'], $name ?? $this->server['name']);
         }
 
-        if(@empty($this->subject))
+        if (@empty($this->subject))
             LayException::throw_exception("Sending an email with an empty `subject` is not allowed!", "EmptyRequiredField");
 
         self::$mail_link->Subject = $this->subject;
 
-        if(@empty($this->body))
+        if (@empty($this->body))
             LayException::throw_exception("Sending an email with an empty `body` is not allowed!", "EmptyRequiredField");
 
         $this->body = $this->get_body();
 
-        if($this->body_is_html)
+        if ($this->body_is_html)
             self::$mail_link->msgHTML($this->body);
         else
             self::$mail_link->html2text($this->body);
@@ -158,20 +160,20 @@ class Mailer {
         self::$mail_link->addAddress($recipient['to'], $recipient['name']);
         self::$mail_link->setFrom($this->server_from['email'], $this->server_from['name']);
 
-        if(isset($this->bcc)) {
+        if (isset($this->bcc)) {
             foreach ($this->bcc as $bcc) {
                 self::$mail_link->addBCC($bcc['email'], $bcc['name']);
             }
         }
 
-        if(isset($this->cc)) {
+        if (isset($this->cc)) {
             foreach ($this->cc as $cc) {
                 self::$mail_link->addCC($cc['email'], $cc['name']);
             }
         }
 
-        if(isset($this->attachment) && !empty($this->attachment['filename'])) {
-            if($this->attachment['as_string'])
+        if (isset($this->attachment) && !empty($this->attachment['filename'])) {
+            if ($this->attachment['as_string'])
                 self::$mail_link->addStringAttachment(
                     $this->attachment['data'],
                     $this->attachment['filename'],
@@ -180,7 +182,7 @@ class Mailer {
                     $this->attachment['disposition'],
                 );
             else {
-                if(!file_exists($this->attachment['filename']))
+                if (!file_exists($this->attachment['filename']))
                     LayException::throw_exception("The file you're trying to attach does not exist", "AttachmentNotFound");
 
                 self::$mail_link->addAttachment(
@@ -196,7 +198,7 @@ class Mailer {
         return $recipient;
     }
 
-    final public static function set_log_file() : void
+    final public static function set_log_file(): void
     {
         $log = Server::new()->temp . "emails" . DIRECTORY_SEPARATOR;
 
@@ -209,15 +211,15 @@ class Mailer {
         file_put_contents(self::$log_file, "[" . LayDate::date(format_index: 3) . "]\n");
     }
 
-    final public static function write_to_log(string $message) : void
+    final public static function write_to_log(string $message): void
     {
-        if(!isset(self::$log_file))
+        if (!isset(self::$log_file))
             self::set_log_file();
 
         file_put_contents(self::$log_file, $message . "\n", FILE_APPEND);
     }
 
-    final public static function get_credentials() : array
+    final public static function get_credentials(): array
     {
         return self::$credentials;
     }
@@ -233,7 +235,7 @@ class Mailer {
      *     default_sender_email: string,
      * } $details
      */
-    final public static function set_credentials(?array $details = null) : array
+    final public static function set_credentials(?array $details = null): array
     {
         $details ??= [
             "host" => LayFn::env('SMTP_HOST', 'localhost'),
@@ -255,7 +257,8 @@ class Mailer {
      * @return string
      * @abstract Must override this method and create your own template for your projects.
      */
-    public function email_template(string $message) : string {
+    public function email_template(string $message): string
+    {
         $text_color = "#000000";
         $bg_color = "transparent";
         $copyright = "&copy; " . date("Y");
@@ -300,7 +303,9 @@ class Mailer {
      *  });
      * }
      */
-    public function set_constant() : void {}
+    public function set_constant(): void
+    {
+    }
 
     /**
      * Get access to PHPMailer instance so you can manipulate it better before sending.
@@ -308,12 +313,14 @@ class Mailer {
      * you're done manipulating it.
      * @return $this
      */
-    final public function mailer_set(callable $callback) : self {
+    final public function mailer_set(callable $callback): self
+    {
         self::$mail_link = $callback(self::$mail_link);
         return $this;
     }
 
-    final public function client(string $email, string $name) : self {
+    final public function client(string $email, string $name): self
+    {
         $this->client = ["email" => $email, "name" => $name];
         return $this;
     }
@@ -325,7 +332,8 @@ class Mailer {
      * } ...$bcc
      * @return $this
      */
-    final public function bcc(array ...$bcc) : self {
+    final public function bcc(array ...$bcc): self
+    {
         $this->bcc = $bcc;
         return $this;
     }
@@ -337,23 +345,26 @@ class Mailer {
      * } ...$cc
      * @return $this
      */
-    final public function cc(array ...$cc) : self {
+    final public function cc(array ...$cc): self
+    {
         $this->cc = $cc;
         return $this;
     }
 
-    final public function msg_as_text() : self
+    final public function msg_as_text(): self
     {
         $this->body_is_html = false;
         return $this;
     }
 
-    final public function server(string $email, string $name) : self {
+    final public function server(string $email, string $name): self
+    {
         $this->server = ["email" => $email, "name" => $name];
         return $this;
     }
 
-    final public function server_from(string $email, string $name) : self {
+    final public function server_from(string $email, string $name): self
+    {
         $this->server_from = ["email" => $email, "name" => $name];
         return $this;
     }
@@ -363,7 +374,7 @@ class Mailer {
      * @param string $lang
      * @return $this
      */
-    final public function preview_text(string $text, string $lang = "en") : self
+    final public function preview_text(string $text, string $lang = "en"): self
     {
         $this->preview_text = '<span id="lay-preview-text" style="display:none;font-size:1px;color:#ffffff;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden" lang="' . $lang . '">'
             . htmlspecialchars($text) .
@@ -371,25 +382,25 @@ class Mailer {
         return $this;
     }
 
-    final public function body(string $email_body, bool $bypass_template = false) : self {
+    final public function body(string $email_body, bool $bypass_template = false): self
+    {
         $this->body = $email_body;
         $this->bypass_template = $bypass_template;
         return $this;
     }
 
-    final public function get_body() : string
+    final public function get_body(): string
     {
         $body = $this->bypass_template ? $this->body : $this->email_template($this->body);
 
-        if(isset($this->preview_text)) {
-            if($this->body_is_html) {
+        if (isset($this->preview_text)) {
+            if ($this->body_is_html) {
                 $body = preg_replace(
                     '/<body([^>]*)>/i',
                     "<body$1>\n{$this->preview_text}\n",
                     $body
                 );
-            }
-            else {
+            } else {
                 $body = $this->preview_text . "\n\n" . $body;
             }
         }
@@ -397,14 +408,14 @@ class Mailer {
         return $body;
     }
 
-    final public function attachment (
+    final public function attachment(
         string          $filename,
-        ?string          $string_or_name = null,
+        ?string         $string_or_name = null,
         string          $type = '',
-        ?MailerEncoding  $encoding = MailerEncoding::ENCODING_BASE64,
-        ?string          $disposition = "attachment",
-        ?bool            $attach_as_string = true
-    ) : self
+        ?MailerEncoding $encoding = MailerEncoding::ENCODING_BASE64,
+        ?string         $disposition = "attachment",
+        ?bool           $attach_as_string = true
+    ): self
     {
         $this->attachment = [
             "data" => $string_or_name,
@@ -418,7 +429,8 @@ class Mailer {
         return $this;
     }
 
-    final public function subject(string $email_subject) : self {
+    final public function subject(string $email_subject): self
+    {
         $this->subject = $email_subject;
         return $this;
     }
@@ -430,10 +442,11 @@ class Mailer {
      *
      * @throws Exception
      */
-    final public function to_server(bool $queue = true, int $priority = 0) : bool|null {
+    final public function to_server(bool $queue = true, int $priority = 0): bool|null
+    {
         $this->to_client = false;
 
-        if(!$queue)
+        if (!$queue)
             return $this->send();
 
         return $this->queue($priority);
@@ -446,11 +459,11 @@ class Mailer {
      *
      * @throws Exception
      */
-    final public function to_client(bool $queue = true, int $priority = 0) : bool|null
+    final public function to_client(bool $queue = true, int $priority = 0): bool|null
     {
         $this->to_client = true;
 
-        if(!$queue)
+        if (!$queue)
             return $this->send();
 
         return $this->queue($priority);
@@ -460,7 +473,8 @@ class Mailer {
      * Disable the use of smtp connection, maybe if you want to use the local mail server
      * @return $this
      */
-    final public function not_smtp() : self {
+    final public function not_smtp(): self
+    {
         $this->use_smtp = false;
         return $this;
     }
@@ -469,24 +483,25 @@ class Mailer {
      * Force the mail server to send an email on localserver
      * @return $this
      */
-    final public function send_on_dev_env() : self
+    final public function send_on_dev_env(): self
     {
-        if(App::is_dev())
+        if (App::is_dev())
             $this->send_on_dev_env = true;
 
         return $this;
     }
 
-    final public function debug() : self {
+    final public function debug(): self
+    {
         $this->debug = true;
         return $this;
     }
 
-    final public function send() : bool
+    final public function send(): bool
     {
         $recipient = $this->start_process();
 
-        if($this->debug) {
+        if ($this->debug) {
             LayException::throw(
                 "[TO] " . $recipient['email'] . "<" . $recipient['name'] . ">\n<br>"
                 . "[FROM] " . $this->server_from['email'] . "<" . $this->server_from['name'] . ">\n<br>"
@@ -501,7 +516,7 @@ class Mailer {
 
             $send_on_dev = LayFn::env('SMTP_SEND_ON_DEV', $this->send_on_dev_env);
 
-            if(App::is_prod() || $send_on_dev) {
+            if (App::is_prod() || $send_on_dev) {
                 $send = self::$mail_link->send();
                 $this->dump_log($send);
                 return $send;
@@ -538,14 +553,14 @@ class Mailer {
      *
      * @throws Exception
      */
-    final public function queue(#[ExpectedValues([0,1,2,3,4,5])] int $priority = 0) : bool
+    final public function queue(#[ExpectedValues([0, 1, 2, 3, 4, 5])] int $priority = 0): bool
     {
-        if($this->debug)
+        if ($this->debug)
             $this->send();
 
         $this->start_process();
 
-        if(empty($this->client ?? null))
+        if (empty($this->client ?? null))
             LayException::throw_exception("You are trying to send an email without specifying the client being sent to", "Mailer::clientNotFound");
 
         return (new MailerQueueHandler())->add_to_queue([

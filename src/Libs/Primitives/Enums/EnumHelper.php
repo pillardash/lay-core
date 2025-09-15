@@ -9,6 +9,21 @@ use BrickLayer\Lay\Core\LayException;
  */
 trait EnumHelper
 {
+    /**
+     * @param self $enum
+     * @return array{
+     *     id: string,
+     *     name: string,
+     * }
+     */
+    private static function _assoc(self $enum) : array
+    {
+        return [
+            "id" => $enum->name,
+            "name" => str_replace("_", " ", $enum->value ??  $enum->name),
+        ];
+    }
+
     public static function to_enum(string $value, bool $throw_error = false, bool $use_value = true, bool $case_sensitive = true) : ?self
     {
         foreach (self::cases() as $enum) {
@@ -41,20 +56,33 @@ trait EnumHelper
         return false;
     }
 
+    /**
+     * @return array<int, array<string, string>>
+     */
     public static function cases_assoc() : array
     {
         $all = [];
 
         foreach (self::cases() as $enum) {
-            $all[] = [
-                "id" => $enum->name,
-                "name" => str_replace("_", " ", $enum->value ??  $enum->name),
-            ];
+            $all[] = self::_assoc($enum);
         }
 
         return $all;
     }
 
+    public static function cases_assoc_api() : array
+    {
+        return [
+            "status" => "success",
+            "code" => 200,
+            "message" => "Ok",
+            "data" => self::cases_assoc(),
+        ];
+    }
+
+    /**
+     * @return array<int, string>
+     */
     public static function cases_row() : array
     {
         $all = [];
@@ -66,23 +94,24 @@ trait EnumHelper
         return $all;
     }
 
-    public static function api_res() : array
+    public static function cases_row_api() : array
     {
         return [
             "status" => "success",
             "code" => 200,
             "message" => "Ok",
-            "data" => self::cases_assoc(),
+            "data" => self::cases_row(),
         ];
     }
 
     /**
      * @param 'default'|'upper'|'ucwords'|'lower'|'ucfirst' $case
+     * @param bool $use_value [default: false]
      * @return string
      */
-    public function stringify(string $case = "default") : string
+    public function stringify(string $case = "default", bool $use_value = false) : string
     {
-        $str = str_replace(["_"], [" "], $this->name);
+        $str = str_replace(["_"], [" "], $use_value && $this->value ? $this->value : $this->name);
 
         if($case == "upper")
             return strtoupper($str);
@@ -97,6 +126,11 @@ trait EnumHelper
             return ucfirst(strtolower($str));
 
         return $str;
+    }
+
+    public function assoc() : array
+    {
+        return self::_assoc($this);
     }
 
 }

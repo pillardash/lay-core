@@ -264,7 +264,6 @@ trait IsFillable {
         string|callable $parser = "@nothing@"
     ) : void
     {
-
         if(!isset($this->columns[$key])) {
             if($default_value === "@same@")
                 LayException::throw("Key [$key] is not set, and a default value was not presented. '@same@' cannot be used as a default value");
@@ -287,6 +286,14 @@ trait IsFillable {
         $primitives = ["bool", "boolean", "int", "integer", "float", "double", "string"];
 
         if(!in_array($type, $primitives)) {
+
+            // This means it's an enum with the EnumUtil trait attached,
+            // Hence auto cast it if no parser is provided
+            if(method_exists($type, "to_enum") && $parser === "@nothing@") {
+                $parser = fn($v) => $type::to_enum($v);
+                $default_value = $default_value === "@same@" ? null : $default_value;
+            }
+
             if($parser === "@nothing@")
                 LayException::throw("Using a custom type [$type], but no parser implemented for your model: [" . static::class . "]");
 
@@ -326,8 +333,8 @@ trait IsFillable {
      * @param BaseModelHelper|string $model Child table/model to join.
      * It's a model/class-string with the static property `::$table` or a regular table string
      *
-     * @param string $on The anchor column on the primary table/model the child table should be joint on.
-     * @param string $to The column the child table should be joint to. The default is id
+     * @param string $on The anchor column on the primary/parent table/model the child table should be joint on.
+     * @param string $to A column on the child table that should be used for joining. The default is id
      * @param string $type Type of join (left, right, inner)
      */
     protected final function join(BaseModelHelper|string $model, string $on, string $to = "id", string $type = "left", ?string $table_alias = null) : static
