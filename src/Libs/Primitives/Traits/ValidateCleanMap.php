@@ -78,7 +78,7 @@ use Exception;
  *     alias?: string,
  *     db_col?: string,
  *
- *     default_value?: string, // This is a value VCM should assign to a non-required field if it's empty
+ *     default_value?: mixed, // This is a value VCM should assign to a non-required field if it's empty
  *
  *     // This modifies the default error message when a required field is not filled
  *     required_message?: string,
