@@ -343,7 +343,7 @@ trait IsFillable {
 
         $table_alias ??= "ct" . $this->join_index;
 
-        if(is_string($model) && !str_contains("\\", $model))
+        if(is_string($model) && !str_contains($model, "\\"))
             $table = $model;
         else
             $table = $model::$table;
