@@ -66,6 +66,18 @@ final class LayFn
         return $item ? preg_replace ($regexp, '', $num_format) . ($item['symbol'] ?? '') : '0';
     }
 
+    public static function currency(float $num, ?string $locale = null, ?string $currency = null, bool $symbol = true): string
+    {
+        if (!$symbol)
+            return number_format($num, 2);
+
+        $locale ??= self::env('DEFAULT_LOCALE', 'en-NG');
+
+        $fmt = new \NumberFormatter($locale, \NumberFormatter::CURRENCY);
+
+        return $fmt->formatCurrency($num, $currency ?? self::env('DEFAULT_CURRENCY', 'NGN'));
+    }
+
     public static function trim_word(string $string, string $word, ?string $preg_pattern = null) : string
     {
         $len = function ($str): int {
