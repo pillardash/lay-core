@@ -60,6 +60,7 @@ trait IsFillable {
     private array $joinery = [];
     private int $join_index = -1;
 
+    protected string $last_join_table;
     protected string $join_table;
 
     /**
@@ -343,6 +344,9 @@ trait IsFillable {
     protected final function join(BaseModelHelper|string $model, string $on, string $to = "id", string $type = "left", ?string $table_alias = null) : static
     {
         $this->join_index++;
+
+        if (isset($this->join_table))
+            $this->last_join_table = $this->join_table;
 
         $table_alias ??= "ct" . $this->join_index;
 
