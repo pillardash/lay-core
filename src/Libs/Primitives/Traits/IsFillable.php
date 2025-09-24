@@ -60,8 +60,8 @@ trait IsFillable {
     private array $joinery = [];
     private int $join_index = -1;
 
-    protected string $last_join_table;
-    protected string $join_table;
+    protected string $prev_joint;
+    protected string $joint;
 
     /**
      * The cached columns selection and all the necessary aliases. To avoid looping all the time
@@ -345,8 +345,8 @@ trait IsFillable {
     {
         $this->join_index++;
 
-        if (isset($this->join_table))
-            $this->last_join_table = $this->join_table;
+        if (isset($this->joint))
+            $this->prev_joint = $this->joint;
 
         $table_alias ??= "ct" . $this->join_index;
 
@@ -355,7 +355,7 @@ trait IsFillable {
         else
             $table = $model::$table;
 
-        $this->join_table = $table_alias;
+        $this->joint = $table_alias;
 
         $this->joinery[$this->join_index] = [
             "type" => $type,
