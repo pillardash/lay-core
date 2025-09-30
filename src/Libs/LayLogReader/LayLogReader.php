@@ -15,6 +15,8 @@ abstract class LayLogReader
     /**
      * Reads the
      * @param bool $as_html
+     * @param int $max_files
+     * @param bool $d2 Control output to come as 2D array or flat array
      * @return array{
      *     time: string,
      *     message: string,
@@ -24,14 +26,14 @@ abstract class LayLogReader
      * }
      * @throws \Exception
      */
-    public static function exceptions(bool $as_html = true, int $max_files = 10) : array
+    public static function exceptions(bool $as_html = true, int $max_files = 10, bool $d2 = true): array
     {
         $file_entry_cache = [];
 
         LayDir::read(
             Server::new()->exceptions,
-            function (string $name, string $dir, $handler, $file) use ($as_html, $max_files, &$file_entry_cache) {
-                if($file['index'] == $max_files) return LayLoop::BREAK;
+            function (string $name, string $dir, $handler, $file) use ($as_html, $max_files, &$file_entry_cache, $d2) {
+                if ($file['index'] == $max_files) return LayLoop::BREAK;
 
                 $fh = fopen($file['full_path'], 'r');
 
@@ -46,7 +48,10 @@ abstract class LayLogReader
                     if ($is_new_entry) {
                         // Yield the last entry before starting a new one
                         if ($current_entry !== null) {
-                            $file_entry_cache[$file['file']][] = $current_entry;
+                            if ($d2)
+                                $file_entry_cache[$file['file']][] = $current_entry;
+                            else
+                                $file_entry_cache[] = $current_entry;
                         }
 
                         $still_x_info = false;
@@ -64,10 +69,10 @@ abstract class LayLogReader
                     }
 
                     $is_internal_trace = preg_match('/__INTERNAL__/', $line, $matches);
-                    if($is_internal_trace || $still_internal_trace) {
+                    if ($is_internal_trace || $still_internal_trace) {
                         $still_internal_trace = true;
 
-                        if($is_internal_trace) continue;
+                        if ($is_internal_trace) continue;
 
                         if ($as_html) $line = "<div class='log-entry-trace internal-trace'>$line</div>";
 
@@ -76,10 +81,10 @@ abstract class LayLogReader
                     }
 
                     $is_app_trace = preg_match('/__APP__/', $line, $matches);
-                    if($is_app_trace || $still_app_trace) {
+                    if ($is_app_trace || $still_app_trace) {
                         $still_app_trace = true;
 
-                        if($is_app_trace) continue;
+                        if ($is_app_trace) continue;
 
                         if ($as_html) $line = "<div class='log-entry-trace app-trace'>$line</div>";
 
@@ -88,10 +93,10 @@ abstract class LayLogReader
                     }
 
                     $is_x_info = preg_match('/HOST:/', $line, $matches);
-                    if($is_x_info || $still_x_info) {
+                    if ($is_x_info || $still_x_info) {
                         $still_x_info = true;
 
-                        if($is_x_info) continue;
+                        if ($is_x_info) continue;
 
                         if ($as_html) $line = "<div class='log-entry-x-info'>$line</div>";
 
@@ -110,7 +115,10 @@ abstract class LayLogReader
                 fclose($fh);
 
                 if ($current_entry !== null) {
-                    $file_entry_cache[$file['file']][] = $current_entry;
+                    if ($d2)
+                        $file_entry_cache[$file['file']][] = $current_entry;
+                    else
+                        $file_entry_cache[] = $current_entry;
                 }
             },
             false,
@@ -125,10 +133,10 @@ abstract class LayLogReader
      * @return string|null
      * @throws \Exception
      */
-    public static function render_exceptions() : ?string
+    public static function render_exceptions(): ?string
     {
         $all_log = "";
-        foreach(LayLogReader::exceptions(true, 15) as $entry) {
+        foreach (LayLogReader::exceptions(true, 15) as $entry) {
             rsort($entry);
             foreach ($entry as $e) {
                 $all_log .= (
@@ -163,7 +171,7 @@ abstract class LayLogReader
      * @return string|null
      * @throws \Exception
      */
-    public static function render_mails() : ?string
+    public static function render_mails(): ?string
     {
         $all_log = "";
 
@@ -171,7 +179,7 @@ abstract class LayLogReader
             Server::new()->temp . "emails",
             function (string $file, string $dir, DirectoryIterator $handler, array $entry) use (&$all_log) {
                 $message = file_get_contents($entry['full_path']);
-                $time = LayDate::date(str_replace(["[","]",".log"], "", $file));
+                $time = LayDate::date(str_replace(["[", "]", ".log"], "", $file));
 
                 $all_log .= (
                 "<details class='mb-5' open>

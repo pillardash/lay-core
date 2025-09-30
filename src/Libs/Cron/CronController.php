@@ -20,7 +20,7 @@ final class CronController
     protected static string $table = "lay_cron_jobs";
     protected static string $SESSION_KEY = "LAY_CRON_JOBS";
 
-    protected static function table_creation_query() : void
+    protected static function table_creation_query(): void
     {
         self::orm()->query("CREATE TABLE IF NOT EXISTS " . self::$table . " (
               id char(36) UNIQUE PRIMARY KEY,
@@ -40,14 +40,14 @@ final class CronController
         ");
     }
 
-    public function job_exists(string $script, string $schedule) : array
+    public function job_exists(string $script, string $schedule): array
     {
         self::init(self::$table);
 
         return self::orm(self::$table)
-            ->where("deleted","0")
-            ->and_where("script","$script")
-            ->and_where("schedule","$schedule")
+            ->where("deleted", "0")
+            ->and_where("script", "$script")
+            ->and_where("schedule", "$schedule")
             ->then_select();
     }
 
@@ -73,7 +73,7 @@ final class CronController
         }
 
         if ($this->delete_record($job_id, self::$created_by))
-            return self::res_success( "Cron job deleted successfully");
+            return self::res_success("Cron job deleted successfully");
 
         return self::res_warning();
     }
@@ -83,9 +83,9 @@ final class CronController
      *
      * @psalm-return array{code: int, status: string, message: string, data: array|null}
      */
-    public function prune_table() : array
+    public function prune_table(): array
     {
-        if($this->empty_trash())
+        if ($this->empty_trash())
             return self::res_warning("Deleted jobs have been removed from the DB");
 
         return self::res_warning();
@@ -138,7 +138,7 @@ final class CronController
         ) return self::res_warning();
 
 
-        return self::res_success( "Job added successfully!");
+        return self::res_success("Job added successfully!");
     }
 
     public function update_last_run(string $job_id): bool
@@ -149,18 +149,15 @@ final class CronController
     }
 
     /**
-     *
      * @return array{code: int, status: string, message: string, data: array|null}
      */
-    public function run_script() : array
+    public function run_script(string $job_id): array
     {
-        $job_id = RequestHelper::request()->id;
-
         self::cleanse($job_id);
 
         $job = LayCron::new()->get_job($job_id);
 
-        if($job) {
+        if ($job) {
             $bin = $job['binary'];
 
             // Extract Job uuid and attach it to the tag variable
@@ -169,9 +166,7 @@ final class CronController
             // Extract any further tags attached to the script so we can safely wrap the script in a single quote
             $sc = explode(" ", $sc_frag[0], 2);
             $script = "'$sc[0]' " . ($sc[1] ?? '');
-        }
-
-        else {
+        } else {
             $job = $this->get_job($job_id);
             $bin = $job['use_php'] == 1 ? LayCron::php_bin() : "";
             $script = $job['script'];
@@ -179,38 +174,32 @@ final class CronController
 
         exec("'$bin' $script", $out);
 
-        return self::res_success( "Script executed!", ['output' => implode(PHP_EOL , $out ?? '')]);
+        return self::res_success("Script executed!", ['output' => implode(PHP_EOL, $out ?? '')]);
     }
 
     /**
-     * @return (array|int|null|string)[]
      *
      * @psalm-return array{code: int, status: string, message: string, data: array|null}
      */
-    public function pause_script() : array
+    public function pause_script(string $job_id): array
     {
-        $job_id = RequestHelper::request()->id;
-
         if (!LayCron::new()->unset($job_id))
-            return self::res_warning( "Could not pause job, maybe job has been paused already");
+            return self::res_warning("Could not pause job, maybe job has been paused already");
 
-        if(
+        if (
             $this->edit_record($job_id, [
                 "active" => '0'
             ], self::$created_by)
-        ) return self::res_success( "Script paused successfully");
+        ) return self::res_success("Script paused successfully");
 
         return self::res_warning();
     }
 
     /**
-     * @return (array|int|null|string)[]
-     *
      * @psalm-return array{code: int, status: string, message: string, data: array|null}
      */
-    public function play_script(?string $job_id = null) : array
+    public function play_script(?string $job_id = null): array
     {
-        $job_id ??= RequestHelper::request()->id;
         $job = $this->get_job($job_id);
 
         $raw_script = $job['script'];
@@ -226,11 +215,11 @@ final class CronController
         if (!$res['exec'])
             return self::res_warning($res['message']);
 
-        if(
+        if (
             $this->edit_record($job_id, [
                 "active" => 1,
             ], self::$created_by)
-        ) return self::res_success( "Script executed successfully");
+        ) return self::res_success("Script executed successfully");
 
         return self::res_warning();
     }
@@ -245,7 +234,7 @@ final class CronController
         return $this->record_list($page);
     }
 
-    public function get_job(string $id) : array
+    public function get_job(string $id): array
     {
         self::cleanse($id);
         return $this->record_by_id($id);
