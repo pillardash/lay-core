@@ -125,9 +125,9 @@ trait Domain
 
                 namespace Web\Api;
                 
-                use BrickLayer\Lay\Core\Api\ApiHooks;
+                use BrickLayer\Lay\Core\Api\ApiCast;
                 
-                class Plaster extends ApiHooks
+                class Plaster extends ApiCast
                 {
                     protected function pre_hook(): void
                     {
@@ -135,8 +135,6 @@ trait Domain
                 
                         \$this->group_limit(60, "1 minute");
                     }
-                
-                    protected function hooks(): void {}
                 }
                 FILE
             );
