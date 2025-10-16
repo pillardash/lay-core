@@ -115,55 +115,79 @@ trait Domain
             FILE
         );
 
-        // Plaster.php for handling routes
-        file_put_contents(
-            $domain_dir . $this->plug->s .
-            "Plaster.php",
-            <<<FILE
-            <?php
-            namespace Web\\$domain_name;
-            
-            use BrickLayer\Lay\Core\View\DomainResource;
-            use BrickLayer\Lay\Core\View\ViewBuilder;
-            use BrickLayer\Lay\Core\View\ViewCast;
-            
-            class Plaster extends ViewCast
-            {
-                protected function init_pages(): void
-                {
-                    \$this->builder->init_start()
-                        ->body_attr("dark", 'id="body-id"')
-                        ->local("logo", DomainResource::get()->shared->img_default->logo)
-                        ->local("section", "app")
-                    ->init_end();
-                }
-            
-                protected function pages(): void
-                {
-                    \$this->route("index")->bind(function (ViewBuilder \$builder) {
-                        \$builder->page("title", "Homepage")
-                            ->page("desc", "This is the default homepage description")
-                            ->assets(
-                                "@css/another.css",
-                            )
-                            ->body("homepage");
-                    });
-            
-                    \$this->route("another-page")->bind(function (ViewBuilder \$builder) {
-                        \$builder->page("title", "Another Page")
-                            ->page("desc", "This is another page's description")
-                            ->assets(
-                                "@css/another.css",
-                            )
-                            ->body("another");
-                    });
-                }
-            }
-            
-            FILE
-        );
+        if ($this->is_api_domain($domain_id)) {
+            // Plaster.php for handling routes
+            file_put_contents(
+                $domain_dir . $this->plug->s .
+                "Plaster.php",
+                <<<FILE
+                <?php
 
-        if (!$this->is_api_domain($domain_id)) {
+                namespace Web\Api;
+                
+                use BrickLayer\Lay\Core\Api\ApiHooks;
+                
+                class Plaster extends ApiHooks
+                {
+                    protected function pre_hook(): void
+                    {
+                        \$this->set_version("v1");
+                
+                        \$this->group_limit(60, "1 minute");
+                    }
+                
+                    protected function hooks(): void {}
+                }
+                FILE
+            );
+        } else {
+            // Plaster.php for handling routes
+            file_put_contents(
+                $domain_dir . $this->plug->s .
+                "Plaster.php",
+                <<<FILE
+                <?php
+                namespace Web\\$domain_name;
+                
+                use BrickLayer\Lay\Core\View\DomainResource;
+                use BrickLayer\Lay\Core\View\ViewBuilder;
+                use BrickLayer\Lay\Core\View\ViewCast;
+                
+                class Plaster extends ViewCast
+                {
+                    protected function init_pages(): void
+                    {
+                        \$this->builder->init_start()
+                            ->body_attr("dark", 'id="body-id"')
+                            ->local("logo", DomainResource::get()->shared->img_default->logo)
+                            ->local("section", "app")
+                        ->init_end();
+                    }
+                
+                    protected function pages(): void
+                    {
+                        \$this->route("index")->bind(function (ViewBuilder \$builder) {
+                            \$builder->page("title", "Homepage")
+                                ->page("desc", "This is the default homepage description")
+                                ->assets(
+                                    "@css/another.css",
+                                )
+                                ->body("homepage");
+                        });
+                
+                        \$this->route("another-page")->bind(function (ViewBuilder \$builder) {
+                            \$builder->page("title", "Another Page")
+                                ->page("desc", "This is another page's description")
+                                ->assets(
+                                    "@css/another.css",
+                                )
+                                ->body("another");
+                        });
+                    }
+                }
+                
+                FILE
+            );
 
             // favicon.ico
             if (file_exists($this->plug->server->web . "favicon.ico")) {
@@ -205,6 +229,7 @@ trait Domain
         $current_domain = "";
 
         if ($domain_id != 'default') {
+
             // Current Domain being created
             preg_match(
                 '/Domain::new\(\)->create\([^)]*' . $domain_id . '[^)]*\);/s',
@@ -221,6 +246,7 @@ trait Domain
             }
 
             $pattern = $old_pattern == $pattern ? $old_pattern : $pattern;
+            $domain_type = $this->is_api_domain($domain_id) ? "DomainType::SPECIAL" : "DomainType::REGULAR";
 
             $current_domain = <<<CUR
             
@@ -228,7 +254,7 @@ trait Domain
                 id: "$domain_id",
                 builder: \Web\\$domain\\Plaster::class,
                 pattern: "$pattern",
-                type: DomainType::REGULAR,
+                type: $domain_type,
             );
             
             CUR;
