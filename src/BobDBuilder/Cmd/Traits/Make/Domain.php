@@ -10,7 +10,7 @@ trait Domain
 {
     public function domain(): void
     {
-        if(!isset($this->tags['make_domain']))
+        if (!isset($this->tags['make_domain']))
             return;
 
         $domain = $this->tags['make_domain'][0] ?? null;
@@ -39,7 +39,7 @@ trait Domain
         $domain_dir = $this->plug->server->domains . $domain;
         $exists = is_dir($domain_dir);
 
-        if(!$this->plug->is_internal && in_array($domain, ["Default", "Api"] )) {
+        if (!$this->plug->is_internal && in_array($domain, ["Default", "Api"])) {
             $this->plug->failed();
             $this->plug->write_warn(
                 "Unfortunately you cannot create a domain with this name!\n"
@@ -65,12 +65,12 @@ trait Domain
 
         $internal_domain = "Domain";
 
-        if($domain == "Default") {
+        if ($domain == "Default") {
             $domain_id = "default";
             $pattern = "*";
         }
 
-        if($domain == "Api") {
+        if ($domain == "Api") {
             $domain_id = "api-endpoint";
             $pattern = "api";
             $internal_domain = "ApiDomain";
@@ -82,7 +82,7 @@ trait Domain
         $this->talk("- Copying default files");
         $this->domain_default_files($domain, $domain_id, $domain_dir);
 
-        if($domain != 'Api') {
+        if ($domain != 'Api') {
             $this->talk("- Linking shared directory *{$this->plug->server->shared}*");
             new BobExec("link:dir web{$this->plug->s}shared web{$this->plug->s}domains{$this->plug->s}$domain{$this->plug->s}public{$this->plug->s}shared --silent");
         }
@@ -93,11 +93,16 @@ trait Domain
         new BobExec("make:server_config --silent");
     }
 
+    public function is_api_domain(string $domain_id): bool
+    {
+        return $domain_id == 'api-endpoint';
+    }
+
     public function domain_default_files(string $domain_name, string $domain_id, string $domain_dir): void
     {
         // root index.php
         file_put_contents(
-            $domain_dir . $this->plug->s . "public" . $this->plug->s . "index.php",
+            $domain_dir . $this->plug->s . (!$this->is_api_domain($domain_id) ? "public" . $this->plug->s : '') . "index.php",
             <<<FILE
             <?php
             const SAFE_TO_INIT_LAY = true;
@@ -158,20 +163,23 @@ trait Domain
             FILE
         );
 
-        // favicon.ico
-        if(file_exists($this->plug->server->web . "favicon.ico")) {
+        if (!$this->is_api_domain($domain_id)) {
+
+            // favicon.ico
+            if (file_exists($this->plug->server->web . "favicon.ico")) {
+                copy(
+                    $this->plug->server->web . "favicon.ico",
+                    $domain_dir . $this->plug->s . "public" . $this->plug->s . "favicon.ico"
+                );
+
+                return;
+            }
+
             copy(
-                $this->plug->server->web . "favicon.ico",
+                $this->plug->server->lay_static . "img" . $this->plug->s . "favicon.ico",
                 $domain_dir . $this->plug->s . "public" . $this->plug->s . "favicon.ico"
             );
-
-            return;
         }
-
-        copy(
-            $this->plug->server->lay_static . "img" . $this->plug->s . "favicon.ico",
-            $domain_dir . $this->plug->s . "public" . $this->plug->s . "favicon.ico"
-        );
     }
 
     public function update_general_domain_entry(string $domain, string $domain_id, string $pattern): void
@@ -196,7 +204,7 @@ trait Domain
 
         $current_domain = "";
 
-        if($domain_id != 'default') {
+        if ($domain_id != 'default') {
             // Current Domain being created
             preg_match(
                 '/Domain::new\(\)->create\([^)]*' . $domain_id . '[^)]*\);/s',
@@ -229,7 +237,7 @@ trait Domain
         // Remove any duplicate from the domain entry
         $index_page = trim(preg_replace(
             ['/Domain::new\(\)->create\([^)]*default[^)]*\);/s',
-                '/Domain::new\(\)->create\([^)]*'. $domain_id .'[^)]*\);/s'],
+                '/Domain::new\(\)->create\([^)]*' . $domain_id . '[^)]*\);/s'],
             "",
             $index_page
         ));
