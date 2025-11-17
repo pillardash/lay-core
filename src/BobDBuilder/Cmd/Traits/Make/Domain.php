@@ -10,7 +10,7 @@ trait Domain
 {
     public function domain(): void
     {
-        if(!isset($this->tags['make_domain']))
+        if (!isset($this->tags['make_domain']))
             return;
 
         $domain = $this->tags['make_domain'][0] ?? null;
@@ -39,7 +39,7 @@ trait Domain
         $domain_dir = $this->plug->server->domains . $domain;
         $exists = is_dir($domain_dir);
 
-        if(!$this->plug->is_internal && in_array($domain, ["Default", "Api"] )) {
+        if (!$this->plug->is_internal && in_array($domain, ["Default", "Api"])) {
             $this->plug->failed();
             $this->plug->write_warn(
                 "Unfortunately you cannot create a domain with this name!\n"
@@ -65,12 +65,12 @@ trait Domain
 
         $internal_domain = "Domain";
 
-        if($domain == "Default") {
+        if ($domain == "Default") {
             $domain_id = "default";
             $pattern = "*";
         }
 
-        if($domain == "Api") {
+        if ($domain == "Api") {
             $domain_id = "api-endpoint";
             $pattern = "api";
             $internal_domain = "ApiDomain";
@@ -82,7 +82,7 @@ trait Domain
         $this->talk("- Copying default files");
         $this->domain_default_files($domain, $domain_id, $domain_dir);
 
-        if($domain != 'Api') {
+        if ($domain != 'Api') {
             $this->talk("- Linking shared directory *{$this->plug->server->shared}*");
             new BobExec("link:dir web{$this->plug->s}shared web{$this->plug->s}domains{$this->plug->s}$domain{$this->plug->s}public{$this->plug->s}shared --silent");
         }
@@ -93,11 +93,16 @@ trait Domain
         new BobExec("make:server_config --silent");
     }
 
+    public function is_api_domain(string $domain_id): bool
+    {
+        return $domain_id == 'api-endpoint';
+    }
+
     public function domain_default_files(string $domain_name, string $domain_id, string $domain_dir): void
     {
         // root index.php
         file_put_contents(
-            $domain_dir . $this->plug->s . "public" . $this->plug->s . "index.php",
+            $domain_dir . $this->plug->s . (!$this->is_api_domain($domain_id) ? "public" . $this->plug->s : '') . "index.php",
             <<<FILE
             <?php
             const SAFE_TO_INIT_LAY = true;
@@ -110,68 +115,93 @@ trait Domain
             FILE
         );
 
-        // Plaster.php for handling routes
-        file_put_contents(
-            $domain_dir . $this->plug->s .
-            "Plaster.php",
-            <<<FILE
-            <?php
-            namespace Web\\$domain_name;
-            
-            use BrickLayer\Lay\Core\View\DomainResource;
-            use BrickLayer\Lay\Core\View\ViewBuilder;
-            use BrickLayer\Lay\Core\View\ViewCast;
-            
-            class Plaster extends ViewCast
-            {
-                protected function init_pages(): void
-                {
-                    \$this->builder->init_start()
-                        ->body_attr("dark", 'id="body-id"')
-                        ->local("logo", DomainResource::get()->shared->img_default->logo)
-                        ->local("section", "app")
-                    ->init_end();
-                }
-            
-                protected function pages(): void
-                {
-                    \$this->route("index")->bind(function (ViewBuilder \$builder) {
-                        \$builder->page("title", "Homepage")
-                            ->page("desc", "This is the default homepage description")
-                            ->assets(
-                                "@css/another.css",
-                            )
-                            ->body("homepage");
-                    });
-            
-                    \$this->route("another-page")->bind(function (ViewBuilder \$builder) {
-                        \$builder->page("title", "Another Page")
-                            ->page("desc", "This is another page's description")
-                            ->assets(
-                                "@css/another.css",
-                            )
-                            ->body("another");
-                    });
-                }
-            }
-            
-            FILE
-        );
+        if ($this->is_api_domain($domain_id)) {
+            // Plaster.php for handling routes
+            file_put_contents(
+                $domain_dir . $this->plug->s .
+                "Plaster.php",
+                <<<FILE
+                <?php
 
-        // favicon.ico
-        if(file_exists($this->plug->server->web . "favicon.ico")) {
-            copy(
-                $this->plug->server->web . "favicon.ico",
-                $domain_dir . $this->plug->s . "public" . $this->plug->s . "favicon.ico"
+                namespace Web\Api;
+                
+                use BrickLayer\Lay\Core\Api\ApiCast;
+                
+                class Plaster extends ApiCast
+                {
+                    protected function pre_hook(): void
+                    {
+                        \$this->set_version("v1");
+                
+                        \$this->group_limit(60, "1 minute");
+                    }
+                }
+                FILE
+            );
+        } else {
+            // Plaster.php for handling routes
+            file_put_contents(
+                $domain_dir . $this->plug->s .
+                "Plaster.php",
+                <<<FILE
+                <?php
+                namespace Web\\$domain_name;
+                
+                use BrickLayer\Lay\Core\View\DomainResource;
+                use BrickLayer\Lay\Core\View\ViewBuilder;
+                use BrickLayer\Lay\Core\View\ViewCast;
+                
+                class Plaster extends ViewCast
+                {
+                    protected function init_pages(): void
+                    {
+                        \$this->builder->init_start()
+                            ->body_attr("dark", 'id="body-id"')
+                            ->local("logo", DomainResource::get()->shared->img_default->logo)
+                            ->local("section", "app")
+                        ->init_end();
+                    }
+                
+                    protected function pages(): void
+                    {
+                        \$this->route("index")->bind(function (ViewBuilder \$builder) {
+                            \$builder->page("title", "Homepage")
+                                ->page("desc", "This is the default homepage description")
+                                ->assets(
+                                    "@css/another.css",
+                                )
+                                ->body("homepage");
+                        });
+                
+                        \$this->route("another-page")->bind(function (ViewBuilder \$builder) {
+                            \$builder->page("title", "Another Page")
+                                ->page("desc", "This is another page's description")
+                                ->assets(
+                                    "@css/another.css",
+                                )
+                                ->body("another");
+                        });
+                    }
+                }
+                
+                FILE
             );
 
-            return;
-        }
+            // favicon.ico
+            if (file_exists($this->plug->server->web . "favicon.ico")) {
+                copy(
+                    $this->plug->server->web . "favicon.ico",
+                    $domain_dir . $this->plug->s . "public" . $this->plug->s . "favicon.ico"
+                );
 
-        copy(
-            $this->plug->server->lay_static . "img" . $this->plug->s . "favicon.ico",
-            $domain_dir . $this->plug->s . "public" . $this->plug->s . "favicon.ico"
-        );
+                return;
+            }
+
+            copy(
+                $this->plug->server->lay_static . "img" . $this->plug->s . "favicon.ico",
+                $domain_dir . $this->plug->s . "public" . $this->plug->s . "favicon.ico"
+            );
+        }
     }
 
     public function update_general_domain_entry(string $domain, string $domain_id, string $pattern): void
@@ -196,7 +226,8 @@ trait Domain
 
         $current_domain = "";
 
-        if($domain_id != 'default') {
+        if ($domain_id != 'default') {
+
             // Current Domain being created
             preg_match(
                 '/Domain::new\(\)->create\([^)]*' . $domain_id . '[^)]*\);/s',
@@ -213,6 +244,7 @@ trait Domain
             }
 
             $pattern = $old_pattern == $pattern ? $old_pattern : $pattern;
+            $domain_type = $this->is_api_domain($domain_id) ? "DomainType::SPECIAL" : "DomainType::REGULAR";
 
             $current_domain = <<<CUR
             
@@ -220,7 +252,7 @@ trait Domain
                 id: "$domain_id",
                 builder: \Web\\$domain\\Plaster::class,
                 pattern: "$pattern",
-                type: DomainType::REGULAR,
+                type: $domain_type,
             );
             
             CUR;
@@ -229,7 +261,7 @@ trait Domain
         // Remove any duplicate from the domain entry
         $index_page = trim(preg_replace(
             ['/Domain::new\(\)->create\([^)]*default[^)]*\);/s',
-                '/Domain::new\(\)->create\([^)]*'. $domain_id .'[^)]*\);/s'],
+                '/Domain::new\(\)->create\([^)]*' . $domain_id . '[^)]*\);/s'],
             "",
             $index_page
         ));

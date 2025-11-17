@@ -744,31 +744,37 @@ abstract class ApiEngine {
     }
 
     public function post(string $route_uri, ApiReturnType $return_type = ApiReturnType::JSON) : self {
-        self::$request_method = ApiRequestMethod::POST->value;
+        self::$request_method = ApiRequestMethod::POST->name;
+
+        return $this->map_request($route_uri, $return_type);
+    }
+
+    public function patch(string $route_uri, ApiReturnType $return_type = ApiReturnType::JSON) : self {
+        self::$request_method = ApiRequestMethod::PATCH->name;
 
         return $this->map_request($route_uri, $return_type);
     }
 
     public function get(string $route_uri, ApiReturnType $return_type = ApiReturnType::JSON) : self {
-        self::$request_method = ApiRequestMethod::GET->value;
+        self::$request_method = ApiRequestMethod::GET->name;
 
         return $this->map_request($route_uri, $return_type);
     }
 
     public function put(string $route_uri, ApiReturnType $return_type = ApiReturnType::JSON) : self {
-        self::$request_method = ApiRequestMethod::PUT->value;
+        self::$request_method = ApiRequestMethod::PUT->name;
 
         return $this->map_request($route_uri, $return_type);
     }
 
     public function head(string $route_uri, ApiReturnType $return_type = ApiReturnType::JSON) : self {
-        self::$request_method = ApiRequestMethod::HEAD->value;
+        self::$request_method = ApiRequestMethod::HEAD->name;
 
         return $this->map_request($route_uri, $return_type);
     }
 
     public function delete(string $route_uri, ApiReturnType $return_type = ApiReturnType::JSON) : self {
-        self::$request_method = ApiRequestMethod::DELETE->value;
+        self::$request_method = ApiRequestMethod::DELETE->name;
 
         return $this->map_request($route_uri, $return_type);
     }
@@ -1279,6 +1285,27 @@ abstract class ApiEngine {
         self::$allow_index_access = false;
     }
 
+
+    /**
+     * Manually signal to the API Engine that a route is not found
+     * @return array{
+     *     code: int,
+     *     status: 'warning',
+     *     message: string,
+     *     data: null
+     * }
+     */
+    public static function not_found() : array
+    {
+        LayFn::http_response_code(404, true);
+        return [
+            "code" => 404,
+            "status" => "warning",
+            "message" => "Route not found",
+            "data" => null,
+        ];
+    }
+
     /**
      * Capture the URI of requests sent to the api router then store it for further processing
      * @param string $local_endpoint The expected endpoint prefix
@@ -1316,6 +1343,17 @@ abstract class ApiEngine {
         return self::$engine;
     }
 
+    /**
+     * Prematurely end the search of API routes.
+     * If a route has been found, the engine will return the result of that route,
+     * else, it will throw an exception with a 404 message.
+     *
+     * **Note:
+     * If you have a situation where multiple routes are clashing, yet you have a way to uniquely identify them
+     * in your code. Don't use this to mark a failing route as not found, rather use the not_found method.
+     * @param bool $print_existing_result
+     * @return void
+     */
     public static function end(bool $print_existing_result = true) : void
     {
         $uri = self::$route_uri_raw ?? "";

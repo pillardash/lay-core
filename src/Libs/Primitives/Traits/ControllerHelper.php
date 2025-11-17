@@ -1,10 +1,9 @@
 <?php
 
-namespace  BrickLayer\Lay\Libs\Primitives\Traits;
+namespace BrickLayer\Lay\Libs\Primitives\Traits;
 
 use BrickLayer\Lay\Core\Api\Enums\ApiStatus;
 use BrickLayer\Lay\Core\CoreException;
-use BrickLayer\Lay\Core\Exception;
 use BrickLayer\Lay\Core\LayException;
 use BrickLayer\Lay\Libs\LayFn;
 use BrickLayer\Lay\Libs\Primitives\Abstracts\RequestHelper;
@@ -13,17 +12,18 @@ use BrickLayer\Lay\Libs\String\Enum\EscapeType;
 use BrickLayer\Lay\Libs\String\Escape;
 use Throwable;
 
-trait ControllerHelper {
+trait ControllerHelper
+{
     /**
      * Quickly escape and replace a value without going through the VCM route or the `Escape::clean()` method.
-     *
-     * @see Escape::clean()
-     * @see ValidateCleanMap
      *
      * @param mixed &$value
      * @param EscapeType $type
      * @param bool $strict
      * @return void
+     * @see Escape::clean()
+     * @see ValidateCleanMap
+     *
      */
     public static function cleanse(mixed &$value, EscapeType $type = EscapeType::STRIP_TRIM_ESCAPE, bool $strict = true): void
     {
@@ -33,17 +33,17 @@ trait ControllerHelper {
     /**
      * Quickly escape and return the escaped value.
      *
-     * @see Escape::clean()
-     * @see ValidateCleanMap
-     *
      * @param mixed $value
      * @param EscapeType $type
      * @param bool $strict
      * @return mixed
+     * @see Escape::clean()
+     * @see ValidateCleanMap
+     *
      */
     public static function clean(mixed $value, EscapeType $type = EscapeType::STRIP_TRIM_ESCAPE, bool $strict = true): mixed
     {
-        if(!$value)
+        if (!$value)
             return "";
 
         return Escape::clean($value, $type, ['strict' => $strict]);
@@ -55,6 +55,14 @@ trait ControllerHelper {
     public static function request(bool $throw_error = true, bool $as_array = false, bool $invalidate_cache = false): array|object
     {
         return RequestHelper::request($throw_error, $as_array, $invalidate_cache);
+    }
+
+    /**
+     * @see RequestHelper::files()
+     */
+    public static function files(bool $as_array = false, bool $invalidate_cache = false): array|object
+    {
+        return RequestHelper::files($as_array, $invalidate_cache);
     }
 
     /**
@@ -70,13 +78,13 @@ trait ControllerHelper {
      *     data: array|null
      * }
      */
-    private static function __res_send(array $data, ApiStatus|int $code = ApiStatus::OK, bool $send_header = false) : array
+    private static function __res_send(array $data, ApiStatus|int $code = ApiStatus::OK, bool $send_header = false): array
     {
         $code = ApiStatus::get_code($code);
 
         LayFn::http_response_code($code, true, log_sent: false);
 
-        if($send_header)
+        if ($send_header)
             LayFn::header("Content-Type: application/json");
 
         $data['code'] = $code;
@@ -97,16 +105,16 @@ trait ControllerHelper {
      *    data: array|null
      * }
      */
-    public static function res_success(string $message = "Successful", array|null|ResourceHelper $data = null, ApiStatus|int $code = ApiStatus::OK, bool $send_header = false, array $meta = []) : array
+    public static function res_success(string $message = "Successful", array|null|ResourceHelper $data = null, ApiStatus|int $code = ApiStatus::OK, bool $send_header = false, array $meta = []): array
     {
         $data = [
             "status" => "success",
             "message" => $message,
-            "data" => $data instanceOf ResourceHelper ? $data->props() : $data,
+            "data" => $data instanceof ResourceHelper ? $data->props() : $data,
         ];
 
         // Add meta information
-        if ( ! empty($meta)) {
+        if (!empty($meta)) {
             $data = array_merge($data, $meta);
         }
 
@@ -127,12 +135,12 @@ trait ControllerHelper {
      *    data: array|null
      * }
      */
-    public static function res_warning(string $message = "Something went wrong", array|null|ResourceHelper $data = null, ApiStatus|int $code = ApiStatus::NOT_ACCEPTABLE, bool $send_header = false) : array
+    public static function res_warning(string $message = "Something went wrong", array|null|ResourceHelper $data = null, ApiStatus|int $code = ApiStatus::NOT_ACCEPTABLE, bool $send_header = false): array
     {
         return self::__res_send([
             "status" => "warning",
             "message" => $message,
-            "data" => $data instanceOf ResourceHelper ? $data->props() : $data,
+            "data" => $data instanceof ResourceHelper ? $data->props() : $data,
         ], $code, $send_header);
     }
 
@@ -148,13 +156,13 @@ trait ControllerHelper {
      *
      * @return array{code: int, status: string, message: string, data: array|null}
      */
-    public static function res_error(string $message = "An internal server error occurred", ?array $errors = null, ApiStatus|int $code = ApiStatus::CONFLICT, ?Throwable $exception = null, bool $send_header = false, bool $log_error =  true) : array
+    public static function res_error(string $message = "An internal server error occurred", ?array $errors = null, ApiStatus|int $code = ApiStatus::CONFLICT, ?Throwable $exception = null, bool $send_header = false, bool $log_error = true): array
     {
-        if((!CoreException::$DISPLAYED_ERROR && $code == ApiStatus::INTERNAL_SERVER_ERROR) && $log_error) {
+        if ((!CoreException::$DISPLAYED_ERROR && $code == ApiStatus::INTERNAL_SERVER_ERROR) && $log_error) {
             $last_error = error_get_last();
             $msg = "";
 
-            if(!empty($last_error) && @$last_error['type'] != E_USER_WARNING && !$exception){
+            if (!empty($last_error) && @$last_error['type'] != E_USER_WARNING && !$exception) {
                 $msg = <<<BDY
                 [LAST_ERROR]                
                 {$last_error['message']} 

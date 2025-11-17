@@ -4,6 +4,7 @@ namespace BrickLayer\Lay\Libs\Primitives\Traits;
 use BrickLayer\Lay\Core\App;
 use BrickLayer\Lay\Core\LayException;
 use BrickLayer\Lay\Libs\Primitives\Abstracts\BaseModelHelper;
+use BrickLayer\Lay\Libs\Primitives\Enums\EnumHelper;
 use BrickLayer\Lay\Libs\String\Enum\EscapeType;
 use BrickLayer\Lay\Libs\String\Escape;
 use BrickLayer\Lay\Orm\SQL;
@@ -59,7 +60,8 @@ trait IsFillable {
     private array $joinery = [];
     private int $join_index = -1;
 
-    protected string $join_table;
+    protected string $prev_joint;
+    protected string $joint;
 
     /**
      * The cached columns selection and all the necessary aliases. To avoid looping all the time
@@ -230,7 +232,7 @@ trait IsFillable {
 
     public final function props(): array
     {
-        return $this->columns;
+        return $this->columns ?? [];
     }
 
     public final function exists(): bool
@@ -261,12 +263,12 @@ trait IsFillable {
     protected final function cast(
         string          $key, string $type,
         mixed           $default_value = "@same@",
-        string|callable $parser = "@nothing@"
-    ) : void
+        string|callable $parser = "@nothing@",
+        bool            $use_enum_value = true
+    ): void
     {
-
-        if(!isset($this->columns[$key])) {
-            if($default_value === "@same@")
+        if (!isset($this->columns[$key])) {
+            if ($default_value === "@same@")
                 LayException::throw("Key [$key] is not set, and a default value was not presented. '@same@' cannot be used as a default value");
 
             $this->columns[$key] = $default_value;
@@ -276,21 +278,30 @@ trait IsFillable {
         $old_type = gettype($this->columns[$key]);
         $is_same_type = $this->columns[$key] instanceof $type;
 
-        if($old_type == $type || $is_same_type)
+        if ($old_type == $type || $is_same_type)
             return;
 
-        if(($type == "array" || $type == "object") && $parser === "@nothing@") {
+        if (($type == "array" || $type == "object") && $parser === "@nothing@") {
             $this->columns[$key] = json_decode($this->columns[$key], $type == "array");
             return;
         }
 
         $primitives = ["bool", "boolean", "int", "integer", "float", "double", "string"];
 
-        if(!in_array($type, $primitives)) {
-            if($parser === "@nothing@")
+        if (!in_array($type, $primitives)) {
+
+            // This means it's an enum with the EnumUtil trait attached,
+            // Hence auto cast it if no parser is provided
+            if (method_exists($type, "to_enum") && $parser === "@nothing@") {
+                /** @var EnumHelper $type * */
+                $parser = fn($v) => $type::to_enum($v, use_value: $use_enum_value);
+                $default_value = $default_value === "@same@" ? null : $default_value;
+            }
+
+            if ($parser === "@nothing@")
                 LayException::throw("Using a custom type [$type], but no parser implemented for your model: [" . static::class . "]");
 
-            if($this->columns[$key] === null) {
+            if ($this->columns[$key] === null) {
                 $this->columns[$key] = $default_value;
                 return;
             }
@@ -326,22 +337,25 @@ trait IsFillable {
      * @param BaseModelHelper|string $model Child table/model to join.
      * It's a model/class-string with the static property `::$table` or a regular table string
      *
-     * @param string $on The anchor column on the primary table/model the child table should be joint on.
-     * @param string $to The column the child table should be joint to. The default is id
+     * @param string $on The anchor column on the primary/parent table/model the child table should be joint on.
+     * @param string $to A column on the child table that should be used for joining. The default is id
      * @param string $type Type of join (left, right, inner)
      */
     protected final function join(BaseModelHelper|string $model, string $on, string $to = "id", string $type = "left", ?string $table_alias = null) : static
     {
         $this->join_index++;
 
+        if (isset($this->joint))
+            $this->prev_joint = $this->joint;
+
         $table_alias ??= "ct" . $this->join_index;
 
-        if(is_string($model) && !str_contains("\\", $model))
+        if(is_string($model) && !str_contains($model, "\\"))
             $table = $model;
         else
             $table = $model::$table;
 
-        $this->join_table = $table_alias;
+        $this->joint = $table_alias;
 
         $this->joinery[$this->join_index] = [
             "type" => $type,

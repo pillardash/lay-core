@@ -151,19 +151,15 @@ final class Startup {
         LayFn::header("Access-Control-Allow-Origin: $http_origin");
         LayFn::header('Access-Control-Max-Age: 86400');    // cache for 1 day
 
-        // Access-Control headers are received during OPTIONS requests
+        if ($fun !== null) $fun();
+
         if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
-
-            if (isset($_SERVER['HTTP_ACCESS_CONTROL_REQUEST_METHOD']))
-                LayFn::header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
-
             if (isset($_SERVER['HTTP_ACCESS_CONTROL_REQUEST_HEADERS']))
                 LayFn::header("Access-Control-Allow-Headers:{$_SERVER['HTTP_ACCESS_CONTROL_REQUEST_HEADERS']}");
 
+            LayFn::http_response_code(200);
             exit(0);
         }
-
-        if ($fun !== null) $fun();
 
         return true;
     }
@@ -175,12 +171,14 @@ final class Startup {
 
     /**
      * @param array{
+     *     assume_prod?: bool,
      *     expose_php?: bool,
      *     timezone?: string,
      *     only_cookies?: bool,
      *     http_only?: bool,
      *     secure?: bool,
      *     same_site?: string,
+     *     samesite?: string,
      *     domain?: string,
      *     path?: string,
      *     lifetime?: int,
@@ -193,6 +191,7 @@ final class Startup {
             return;
 
         $cookie_opt = [];
+        $assume_prod = $flags['assume_prod'] ?? App::is_prod();
         $flags['expose_php'] ??= false;
         $flags['timezone'] ??= LayFn::env('DEFAULT_TIMEZONE', 'Africa/Lagos');
 
@@ -206,14 +205,14 @@ final class Startup {
         if (isset($flags['only_cookies']))
             ini_set("session.use_only_cookies", ((int)$flags['only_cookies']) . "");
 
-        if (App::is_prod() && (isset($flags['http_only']) || isset($flags['httponly'])))
+        if ($assume_prod && (isset($flags['http_only']) || isset($flags['httponly'])))
             $cookie_opt['httponly'] = filter_var($flags['httponly'] ?? $flags['http_only'], FILTER_VALIDATE_BOOL);
 
-        if (App::is_prod()  && isset($flags['secure']))
+        if ($assume_prod  && isset($flags['secure']))
             $cookie_opt['secure'] = filter_var($flags['secure'], FILTER_VALIDATE_BOOL);
 
-        if (App::is_prod()  && isset($flags['samesite']))
-            $cookie_opt['samesite'] = ucfirst($flags['samesite']);
+        if ($assume_prod  && (isset($flags['samesite']) || isset($flags['same_site'])))
+            $cookie_opt['samesite'] = ucfirst($flags['samesite'] ?? $flags['same_site']);
 
         if (isset($flags['domain']))
             $cookie_opt['domain'] = "." . $flags['domain'];
@@ -286,6 +285,7 @@ final class Startup {
         $base_no_proto  = rtrim(str_replace($slash,"/", $base),"/");
 
         $base = $proto . $http_host . $base_no_proto . "/";
+
         $base_no_proto  = $http_host . $base_no_proto;
         $base_no_proto_no_www  = str_replace("www.","", $base_no_proto);
 
@@ -298,7 +298,7 @@ final class Startup {
         $web = "";
 
         if(!$options['using_domain']) {
-            $web = $options['using_web'] ? "" : "web/";
+            $web = $options['using_web'] ? "" : "/web/";
             $options['use_domain_file'] = true;
         }
 
@@ -311,7 +311,7 @@ final class Startup {
             $options['using_domain'] = "";
         }
 
-        $options['domain'] = $base . $web;
+        $options['domain'] = $base . ltrim($web, "/");
         $options['domain_no_proto'] = $base_no_proto . $web;
         $options['domain_no_proto_no_www'] = $base_no_proto_no_www . $web;
 

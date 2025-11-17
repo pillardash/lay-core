@@ -72,14 +72,16 @@ final class LayCookieStorage
         $secure = $options['secure'] ?? null;
 
         if (App::is_dev())
-            $secure = $secure ?? false;
+//            $secure = $secure ?? false;
+            $secure = false;
 
         $name = str_replace(["=", ",", ";", " ", "\t", "\r", "\n", "\013", "\014"], "", $name);
 
         setcookie($name, $value, [
             "expires" => $expires == 0 ? (int)$expires : strtotime($expires),
             "path" => $path,
-            "domain" => $domain ?? $_SERVER['HTTP_HOST'],
+//            "domain" => $domain ?? $_SERVER['HTTP_HOST'],
+            "domain" => $domain,
             "secure" => $secure ?? true,
             "httponly" => $httponly,
             "samesite" => $same_site
@@ -252,6 +254,8 @@ final class LayCookieStorage
 
     public static function get(string $cookie_name) : mixed
     {
+        if($cookie_name == "*") return $_COOKIE;
+
         return $_COOKIE[$cookie_name] ?? null;
     }
 }
