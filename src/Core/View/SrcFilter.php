@@ -1,5 +1,5 @@
-
-<?php namespace BrickLayer\Lay\Core\View;
+<?php
+namespace BrickLayer\Lay\Core\View;
 
 final class SrcFilter
 {
