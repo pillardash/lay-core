@@ -183,7 +183,7 @@ trait Request {
                 $response = curl_exec($ch);
                 $err = curl_error($ch);
 
-                curl_close($ch);
+                // curl_close($ch);
 
                 if ($err)
                     return null;
