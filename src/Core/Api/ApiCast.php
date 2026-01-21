@@ -15,6 +15,8 @@ abstract class ApiCast extends ApiHooks
 {
     protected bool $print_end_result = true;
     protected bool $security_in_dev = false;
+    protected bool $init_orm = true;
+
     protected static bool $is_dumping = false;
 
     protected function hooks(): void {}
@@ -59,7 +61,8 @@ abstract class ApiCast extends ApiHooks
         }
 
         if(!self::$is_invalidating) {
-            Startup::new()->connect_db();
+            if($this->init_orm) Startup::new()->connect_db();
+
             self::fetch();
         }
 
