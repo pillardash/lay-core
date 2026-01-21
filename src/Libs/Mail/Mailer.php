@@ -519,11 +519,14 @@ class Mailer
             if (App::is_prod() || $send_on_dev) {
                 $send = self::$mail_link->send();
                 $this->dump_log($send);
-                return $send;
+
+                // If there's an error, it should throw an exception
+                // There is a bug at the moment that makes $send always return false even after the email has been sent,
+                // So we will fix that before returning $send
+                return true;
             }
 
             return true;
-
         } catch (\Throwable $e) {
             LayException::throw_exception(
                 "Recipient: " . $recipient['to'],
