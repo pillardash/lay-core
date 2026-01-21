@@ -439,11 +439,12 @@ trait Config{
         if(isset(self::$active_driver))
             return self::$active_driver;
 
-        if(!isset($_ENV['DB_DRIVER']))
+        if(!LayFn::env('DB_DRIVER')) {
             self::exception(
                 "NoDBDriverFound",
                 "No Database driver was found. It's possible that you called this method before initializing the ORM"
             );
+        }
 
         if($driver = OrmDriver::tryFrom(LayFn::env('DB_DRIVER')))
             return $driver;

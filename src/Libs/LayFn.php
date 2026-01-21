@@ -247,15 +247,15 @@ final class LayFn
     {
         $key = strtoupper($key);
 
-        $_ENV[$key] ??= $default;
+        $var = $_ENV[$key] ?? $_SERVER[$key] ?? $default;
 
         if(gettype($default) == "boolean")
-            $_ENV[$key] = filter_var($_ENV[$key], FILTER_VALIDATE_BOOL);
+            $var = filter_var($var, FILTER_VALIDATE_BOOL);
 
         if(is_numeric($default))
-            $_ENV[$key] = filter_var($_ENV[$key], FILTER_VALIDATE_INT);
+            $var = filter_var($var, FILTER_VALIDATE_INT);
 
-        return $_ENV[$key];
+        return $var;
     }
 
     public static function if_prod(callable $action) : mixed

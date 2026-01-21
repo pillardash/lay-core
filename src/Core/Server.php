@@ -6,6 +6,7 @@ use BrickLayer\Lay\Core\Enums\LayMode;
 use BrickLayer\Lay\Core\Enums\LayServerType;
 use BrickLayer\Lay\Libs\Dir\LayDir;
 use BrickLayer\Lay\Libs\ID\Gen;
+use BrickLayer\Lay\Libs\LayFn;
 use BrickLayer\Lay\Libs\Primitives\Traits\IsSingleton;
 use BrickLayer\Lay\Orm\SQL;
 use Dotenv\Dotenv;
@@ -78,7 +79,7 @@ final class Server
 
     private static function __set_dev_env(): void
     {
-        $env_host = $_SERVER['REMOTE_ADDR'] ?? $_ENV['LAY_SERVER_ADDR'] ?? "cli";
+        $env_host = $_SERVER['REMOTE_ADDR'] ?? LayFn::env('LAY_SERVER_ADDR', "cli");
         $localhost = ["127.0.", "192.168.", "::1"];
 
         $env_is_prod = (

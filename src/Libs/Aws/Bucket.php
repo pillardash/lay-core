@@ -3,6 +3,7 @@
 namespace BrickLayer\Lay\Libs\Aws;
 
 use Aws\S3\S3Client;
+use BrickLayer\Lay\Libs\LayFn;
 use Error;
 use Exception;
 use GuzzleHttp\Promise\Utils;
@@ -23,7 +24,7 @@ final class Bucket
         AwsS3Client    $type = AwsS3Client::R2,
     )
     {
-        $this->bucket ??= $_ENV['BUCKET_NAME'] ?? null;
+        $this->bucket ??= LayFn::env('BUCKET_NAME');
         self::$client = new S3Client(LayAws::init($type)::$credentials);
     }
 
